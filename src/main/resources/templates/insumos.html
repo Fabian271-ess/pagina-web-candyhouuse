@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>Insumos - Candy House</title>
+  <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body class="bg-texture">
+
+<header class="topbar">
+  <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-small" alt="Logo">
+  <div style="display:flex; gap:10px">
+    <a href="/dashboard" class="btn-pink">Panel</a>
+    <a href="/logout"    class="btn-pink">Salir</a>
+  </div>
+</header>
+
+<section class="clientes-section">
+  <div class="clientes-box">
+
+    <h2>🧂 Gestión de Insumos</h2>
+
+    <div class="tabla-header">
+      <a href="/add_insumo" class="btn-pink">+ Añadir Insumo</a>
+    </div>
+    <br>
+
+    <table class="tabla-clientes">
+      <colgroup>
+        <col style="width:7%">
+        <col style="width:13%">
+        <col style="width:11%">
+        <col style="width:11%">
+        <col style="width:9%">
+        <col style="width:8%">
+        <col style="width:25%">
+        <col style="width:16%">
+      </colgroup>
+      <thead>
+      <tr>
+        <th>#</th>
+        <th>Nombre</th>
+        <th>Categoría</th>
+        <th>Marca</th>
+        <th>Costo</th>
+        <th>Stock</th>
+        <th>Descripción</th>
+        <th>Acciones</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr th:if="${#lists.isEmpty(insumos)}">
+        <td colspan="8" style="text-align:center; color:#aaa; padding:20px;">No hay insumos registrados todavía.</td>
+      </tr>
+      <tr th:each="i, iterStat : ${insumos}">
+        <td th:text="${paginaActual * 5 + iterStat.count}"></td>
+        <td th:text="${i.nombreIns}"></td>
+        <td th:text="${i.categoria}"></td>
+        <td th:text="${i.marca}"></td>
+        <td th:text="'$' + ${#numbers.formatInteger(i.costo, 0, 'COMMA')}"></td>
+        <td>
+          <span th:if="${i.existenciaIns == 0}" class="badge-agotado">✕ Agotado</span>
+          <span th:if="${i.existenciaIns > 0 and i.existenciaIns <= 10}" class="badge-stock-bajo">⚠ [[${i.existenciaIns}]]</span>
+          <span th:if="${i.existenciaIns > 10}" th:text="${i.existenciaIns}"></span>
+        </td>
+        <td>
+          <span th:if="${i.descripcion != null}" th:text="${i.descripcion}"></span>
+          <span th:unless="${i.descripcion != null}" class="sin-dato">—</span>
+        </td>
+        <td>
+          <a th:href="@{/editar_insumo/{id}(id=${i.insumoCod})}" class="btn-yellow">Editar</a>
+          <button class="btn-danger"
+                  th:attr="onclick='abrirModal(' + ${i.insumoCod} + ', \'' + ${i.nombreIns} + '\')'">
+            Eliminar
+          </button>
+        </td>
+      </tr>
+      </tbody>
+    </table>
+
+    <div th:replace="~{paginacion :: controles(paginaActual=${paginaActual}, totalPaginas=${totalPaginas}, url='/insumos')}"></div>
+
+  </div>
+</section>
+
+<!-- Modal confirmación eliminar -->
+<div class="modal-overlay" id="modalEliminar">
+  <div class="modal-box">
+    <div class="modal-icon">🗑️</div>
+    <h3>¿Eliminar insumo?</h3>
+    <p>Vas a eliminar <strong id="modalNombre">este insumo</strong>.<br>Esta acción no se puede deshacer.</p>
+    <div class="modal-btns">
+      <button class="btn-modal-cancel" onclick="cerrarModal()">Cancelar</button>
+      <form id="formEliminar" method="post">
+        <button type="submit" class="btn-modal-confirm">Sí, eliminar</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<footer>© 2026 Delicias Candy House</footer>
+
+<script>
+  function abrirModal(id, nombre) {
+    document.getElementById('modalNombre').textContent = nombre;
+    document.getElementById('formEliminar').action = '/eliminar_insumo/' + id;
+    document.getElementById('modalEliminar').classList.add('active');
+  }
+  function cerrarModal() {
+    document.getElementById('modalEliminar').classList.remove('active');
+  }
+  document.getElementById('modalEliminar').addEventListener('click', function(e) {
+    if (e.target === this) cerrarModal();
+  });
+</script>
+</body>
+</html>

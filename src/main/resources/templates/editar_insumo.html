@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>Editar Insumo - Candy House</title>
+  <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body class="bg-texture">
+
+<header class="topbar">
+  <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-small" alt="Logo">
+  <div style="display:flex; gap:10px">
+    <a href="/dashboard" class="btn-pink">Panel</a>
+    <a href="/logout"    class="btn-pink">Salir</a>
+  </div>
+</header>
+
+<section class="producto">
+  <div class="box login">
+
+    <h2>✏️ Editar Insumo</h2>
+
+    <form method="post" th:action="@{/editar_insumo/{id}(id=${insumo.insumoCod})}">
+
+      <div class="form-group">
+        <label>Nombre del insumo</label>
+        <input type="text" name="nombre" th:value="${insumo.nombreIns}" required>
+      </div>
+
+      <div class="form-group">
+        <label>Categoría</label>
+        <select name="categoria" required>
+          <option value="harina"
+                  th:selected="${insumo.categoria == 'harina'}">Harina</option>
+          <option value="azúcar"
+                  th:selected="${insumo.categoria == 'azúcar'}">Azúcar</option>
+          <option value="lácteos"
+                  th:selected="${insumo.categoria == 'lácteos'}">Lácteos</option>
+          <option value="huevos"
+                  th:selected="${insumo.categoria == 'huevos'}">Huevos</option>
+          <option value="Grasas"
+                  th:selected="${insumo.categoria == 'Grasas'}">Grasas</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Marca</label>
+        <input type="text" name="marca" th:value="${insumo.marca}" required>
+      </div>
+
+      <div class="form-group">
+        <label>Costo ($)</label>
+        <input type="number" name="costo" th:value="${insumo.costo}"
+               min="0" step="0.01" required>
+      </div>
+
+      <div class="form-group">
+        <label>Stock (existencia)</label>
+        <input type="number" name="existencia" th:value="${insumo.existenciaIns}"
+               min="0" required>
+      </div>
+
+      <div class="form-group">
+        <label>Descripción</label>
+        <textarea name="descripcion" rows="3"
+                  th:text="${insumo.descripcion != null ? insumo.descripcion : ''}"></textarea>
+      </div>
+
+      <div class="form-actions">
+        <a href="/insumos" class="btn-pink">Cancelar</a>
+        <button type="submit" class="btn-green">Guardar</button>
+      </div>
+
+      <p th:if="${mensaje != null and !#strings.isEmpty(mensaje)}"
+         class="mensaje-form" th:text="${mensaje}"></p>
+
+    </form>
+
+  </div>
+</section>
+
+<footer>© 2026 Delicias Candy House</footer>
+</body>
+</html>

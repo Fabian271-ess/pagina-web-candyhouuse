@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"><title>Detalle Pedido - Candy House</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}"></head>
+<body class="bg-texture">
+<header class="topbar">
+    <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-small" alt="Logo">
+    <div style="display:flex; gap:10px">
+        <a href="/dashboard" class="btn-pink">Panel</a>
+        <a href="/logout" class="btn-pink">Salir</a>
+    </div>
+</header>
+<section style="flex:1; display:flex; align-items:center; justify-content:center; padding:12px 16px; overflow:hidden;">
+    <div class="detalle-container detalle-pedido">
+        <h2>🧾 Detalle del Pedido</h2>
+        <table class="detalle-table">
+            <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Precio Unitario</th>
+                <th>Subtotal</th>
+                <th>Indicación del cliente</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="d : ${detalles}">
+                <td th:text="${d.nombreProducto}"></td>
+                <td th:text="${d.cantidad}"></td>
+                <td th:text="${'$' + #numbers.formatDecimal(d.precioUnit, 1, 2)}"></td>
+                <td th:text="${'$' + #numbers.formatDecimal(d.subtotal,   1, 2)}"></td>
+                <td>
+                <span th:if="${d.nota != null and !d.nota.isEmpty()}"
+                      style="background:#fff8e6; color:#9a6a33; padding:4px 10px; border-radius:12px; font-size:13px; border:1px solid #f3e0b0;">
+                    💬 <span th:text="${d.nota}"></span>
+                </span>
+                    <span th:if="${d.nota == null or d.nota.isEmpty()}" style="color:#ccc;">—</span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <div class="total-box">
+            💰 Total del Pedido: $<span th:text="${#numbers.formatDecimal(total, 1, 2)}"></span>
+        </div>
+        <a href="/ver_pedidos" class="btn-volver">&#8592; Volver a Pedidos</a>
+    </div>
+</section>
+<footer>© 2026 Delicias Candy House</footer>
+</body>
+</html>

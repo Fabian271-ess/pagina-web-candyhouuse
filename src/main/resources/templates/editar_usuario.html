@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"><title>Editar Usuario</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}"></head>
+<body class="bg-texture">
+<header class="topbar">
+    <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-small" alt="Logo">
+    <div style="display:flex; gap:10px">
+        <a href="/dashboard" class="btn-pink">Panel</a>
+        <a href="/logout" class="btn-pink">Salir</a>
+    </div>
+</header>
+<section class="view-section">
+    <h2>Cambiar Contraseña — <span th:text="${nombre}"></span></h2>
+    <form method="POST" th:action="@{/editar_usuario/{n}(n=${nombre})}">
+        <input type="password" name="new"     placeholder="Nueva contraseña" minlength="8" maxlength="15">
+        <input type="password" name="confirm" placeholder="Confirmar" minlength="8" maxlength="15">
+        <button class="btn-green">Guardar</button>
+        <p th:text="${mensaje}" style="color:#e35d7a"></p>
+    </form>
+</section>
+<footer>© 2026 Delicias Candy House</footer>
+</body>
+</html>

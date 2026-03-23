@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Mis Datos - Candy House</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body class="bg-texture">
+
+<header class="topbar">
+    <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-small" alt="Logo">
+    <div style="display:flex; gap:10px">
+        <a href="/panel_usuario" class="btn-pink">Panel</a>
+        <a href="/logout"        class="btn-pink">Salir</a>
+    </div>
+</header>
+
+<section class="producto">
+    <div class="box login">
+
+        <h2>👤 Mis Datos</h2>
+
+        <form method="POST" th:action="@{/editar_cliente}">
+
+            <div class="form-group">
+                <label>Tipo de documento</label>
+                <select name="tipo_doc" required>
+                    <option value="T.I"  th:selected="${cliente.tipoDoc == 'T.I'}">T.I</option>
+                    <option value="PPT"  th:selected="${cliente.tipoDoc == 'PPT'}">PPT</option>
+                    <option value="C.c"  th:selected="${cliente.tipoDoc == 'C.c'}">C.c</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Número de documento</label>
+                <input type="number" th:value="${cliente.clienteDoc}" disabled
+                       style="background:#f5f5f5; color:#999; cursor:not-allowed;">
+                <small style="color:#aaa; font-size:11px; margin-top:2px;">El número de documento no se puede modificar</small>
+            </div>
+
+            <div class="form-group">
+                <label>Nombre</label>
+                <input type="text" name="nombre_cli"
+                       th:value="${cliente.nombreCli}" required>
+            </div>
+
+            <div class="form-group">
+                <label>Apellido</label>
+                <input type="text" name="apellido_cli"
+                       th:value="${cliente.apellidoCli}" required>
+            </div>
+
+            <div class="form-group">
+                <label>Teléfono</label>
+                <input type="number" name="telefono"
+                       th:value="${cliente.telefono}" required>
+            </div>
+
+            <div class="form-actions">
+                <a href="/panel_usuario" class="btn-pink">Cancelar</a>
+                <button type="submit" class="btn-green">Guardar</button>
+            </div>
+
+            <p th:if="${mensaje != null and !#strings.isEmpty(mensaje)}"
+               class="mensaje-form" th:text="${mensaje}"></p>
+
+        </form>
+    </div>
+</section>
+
+<footer>© 2026 Delicias Candy House</footer>
+</body>
+</html>

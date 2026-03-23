@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Panel Admin - Candy House</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body class="bg-texture">
+
+<header class="topbar">
+    <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-small" alt="Logo">
+    <div style="display:flex; gap:10px; align-items:center">
+
+        <div class="notif-wrapper">
+            <button class="notif-btn" id="notifBtn" title="Notificaciones">
+                &#128276;
+                <span class="notif-badge hidden" id="notifBadge">0</span>
+            </button>
+            <div class="notif-panel" id="notifPanel">
+                <div class="notif-header">Notificaciones</div>
+                <div id="notifLista">
+                    <p class="notif-vacia">Cargando...</p>
+                </div>
+            </div>
+        </div>
+
+        <a href="/logout" class="btn-pink">Salir</a>
+    </div>
+</header>
+
+<section class="view-section">
+    <h1>Panel Administración</h1>
+    <div class="grid">
+        <div class="card">
+            <img th:src="@{/imagenes/logo_productos.png}" width="80" alt="">
+            <h3>Productos</h3>
+            <a href="/productos" class="btn-pink">Gestionar</a>
+        </div>
+        <div class="card">
+            <img th:src="@{/imagenes/logo_insumos.png}" width="80" alt="">
+            <h3>Insumos</h3>
+            <a href="/insumos" class="btn-pink">Gestionar</a>
+        </div>
+        <div class="card">
+            <img th:src="@{/imagenes/logo_usuarios.png}" width="80" alt="">
+            <h3>Usuarios</h3>
+            <a href="/usuarios" class="btn-pink">Gestionar</a>
+        </div>
+        <div class="card">
+            <img th:src="@{/imagenes/logo_clientes.png}" width="80" alt="">
+            <h3>Clientes</h3>
+            <a href="/clientes" class="btn-pink">Gestionar</a>
+        </div>
+        <div class="card">
+            <img th:src="@{/imagenes/logo_pedidos.png}" width="80" alt="">
+            <h3>Pedidos</h3>
+            <a href="/ver_pedidos" class="btn-pink">Gestionar</a>
+        </div>
+    </div>
+</section>
+
+<footer>© 2026 Delicias Candy House</footer>
+
+<script th:src="@{/js/notificaciones.js}"></script>
+<script th:src="@{/js/datetime.js}"></script>
+
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Editar Producto</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+
+<body class="bg-texture">
+
+<header class="topbar">
+    <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-small" alt="Logo">
+    <div style="display:flex; gap:10px">
+        <a href="/dashboard" class="btn-pink">Panel</a>
+        <a href="/logout" class="btn-pink">Salir</a>
+    </div>
+</header>
+
+<section class="producto producto-scroll">
+
+    <div class="box login">
+
+        <h2>Editar Producto</h2>
+
+        <form method="POST" th:action="@{/editar_producto/{id}(id=${producto.productoCod})}">
+
+
+            <div class="form-group"
+                 th:if="${producto.imagenUrl != null and !#strings.isEmpty(producto.imagenUrl)}">
+
+                <label>Imagen actual</label><br>
+
+                <img th:src="${producto.imagenUrl}"
+                     alt="Imagen actual"
+                     style="width:200px; height:200px; object-fit:cover; border-radius:10px; margin-bottom:10px;">
+            </div>
+
+            <div class="form-group">
+                <label>Nombre del producto</label>
+                <input type="text"
+                       name="nombre"
+                       th:value="${producto.nombrePro}"
+                       required>
+            </div>
+
+            <div class="form-group">
+                <label>Categoría</label>
+                <select name="categoria" required>
+
+                    <option value="pastel"
+                            th:selected="${producto.categoria == 'pastel'}">
+                        Pastel
+                    </option>
+
+                    <option value="Muffins"
+                            th:selected="${producto.categoria == 'Muffins'}">
+                        Muffins
+                    </option>
+
+                    <option value="Galletas"
+                            th:selected="${producto.categoria == 'Galletas'}">
+                        Galletas
+                    </option>
+
+                    <option value="Postre Individual"
+                            th:selected="${producto.categoria == 'Postre Individual'}">
+                        Postre Individual
+                    </option>
+
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Precio</label>
+                <input type="number"
+                       name="precio"
+                       th:value="${producto.precio}"
+                       min="0"
+                       required>
+            </div>
+
+            <div class="form-group">
+                <label>Stock</label>
+                <input type="number"
+                       name="existencia"
+                       th:value="${producto.existenciaProd}"
+                       min="0"
+                       required>
+            </div>
+
+            <div class="form-group">
+                <label>Descripción</label>
+                <textarea name="descripcion"
+                          rows="3"
+                          th:text="${producto.descripcion}">
+        </textarea>
+            </div>
+
+
+            <div class="form-group">
+                <label>URL de la imagen</label>
+                <input type="url"
+                       name="imagenUrl"
+                       th:value="${producto.imagenUrl}"
+                       placeholder="https://ejemplo.com/imagen.jpg">
+            </div>
+
+            <div class="form-actions">
+
+                <a href="/productos" class="btn-pink">
+                    Cancelar
+                </a>
+
+                <button class="btn-green">
+                    Guardar
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</section>
+
+<footer>
+    © 2026 Delicias Candy House
+</footer>
+
+</body>
+</html>

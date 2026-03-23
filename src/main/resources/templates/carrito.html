@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"><title>Carrito - Candy House</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}"></head>
+<body class="bg-texture">
+<header class="topbar">
+    <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-small" alt="Logo">
+    <div style="display:flex; gap:10px">
+        <a href="/panel_usuario" class="btn-pink">Panel</a>
+        <a href="/logout" class="btn-pink">Salir</a>
+    </div>
+</header>
+<section class="clientes-section carrito-section">
+    <div class="clientes-box carrito-scroll">
+        <h2>🛒 Mi Carrito</h2>
+
+        <!-- Error de stock al finalizar compra -->
+        <div th:if="${param.error != null}"
+             style="background:#fdecea; color:#c0392b; padding:12px 18px;
+                    border-radius:12px; margin-bottom:16px; font-size:14px;
+                    border: 1px solid #f5c6c6;">
+            ⚠ El producto "<span th:text="${param.error}"></span>"
+            no tiene suficiente stock disponible. Por favor ajusta la cantidad.
+        </div>
+
+        <form action="/finalizar_compra" method="POST">
+            <table class="tabla-clientes">
+                <tr>
+                    <th>Seleccionar</th>
+                    <th>Nombre</th>
+                    <th>Precio</th>
+                    <th>Cantidad</th>
+                    <th>Subtotal</th>
+                    <th>Indicación especial</th>
+                    <th>Acción</th>
+                </tr>
+                <tr th:each="p : ${productos}">
+                    <td>
+                        <input type="checkbox" name="productos_seleccionados"
+                               th:value="${p.productoCod}">
+                    </td>
+                    <td th:text="${p.nombre}"></td>
+                    <td>$<span th:text="${p.precio}"></span></td>
+                    <td th:text="${p.cantidad}"></td>
+                    <td>$<span th:text="${p.subtotal}"></span></td>
+                    <td>
+                        <input type="text"
+                               th:name="'nota_' + ${p.productoCod}"
+                               placeholder="Ej: sin nueces, poco azúcar..."
+                               maxlength="250"
+                               style="width:100%; padding:6px 10px; border-radius:12px; border:1px solid #f3c2cc; font-size:13px; color:#5a3a33; background:#fff8fa;">
+                    </td>
+                    <td>
+                        <a th:href="@{/eliminar_carrito/{id}(id=${p.productoCod})}" class="btn-pink">Eliminar</a>
+                    </td>
+                </tr>
+            </table>
+            <br>
+            <h3>Datos de Envío</h3>
+            <input type="date"   name="fecha_entrega" required>
+            <input type="text"   name="direccion"  placeholder="Dirección" required>
+            <input type="text"   name="ciudad"     placeholder="Ciudad" required>
+            <input type="text"   name="telefono"   placeholder="Teléfono" required>
+            <br><br>
+            <button type="submit" class="btn-green">Finalizar Compra</button>
+        </form>
+    </div>
+</section>
+<footer>© 2026 Delicias Candy House</footer>
+</body>
+</html>

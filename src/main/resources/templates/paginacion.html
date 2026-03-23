@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<div th:fragment="controles(paginaActual, totalPaginas, url)"
+     th:if="${totalPaginas > 1}"
+     class="paginacion-container"
+     th:with="sep=${url.contains('?') ? '&' : '?'}">
+
+    <!-- Boton Anterior -->
+    <a th:if="${paginaActual > 0}"
+       th:href="${url + sep + 'page=' + (paginaActual - 1)}"
+       class="pag-btn">&#8592; Anterior</a>
+    <span th:if="${paginaActual == 0}" class="pag-btn pag-disabled">&#8592; Anterior</span>
+
+    <!-- Numeros de pagina -->
+    <span th:each="i : ${#numbers.sequence(0, totalPaginas - 1)}">
+        <a th:if="${i != paginaActual}"
+           th:href="${url + sep + 'page=' + i}"
+           th:text="${i + 1}"
+           class="pag-btn"></a>
+        <span th:if="${i == paginaActual}"
+              th:text="${i + 1}"
+              class="pag-btn pag-activo"></span>
+    </span>
+
+    <!-- Boton Siguiente -->
+    <a th:if="${paginaActual < totalPaginas - 1}"
+       th:href="${url + sep + 'page=' + (paginaActual + 1)}"
+       class="pag-btn">Siguiente &#8594;</a>
+    <span th:if="${paginaActual >= totalPaginas - 1}" class="pag-btn pag-disabled">Siguiente &#8594;</span>
+
+    <!-- Info pagina -->
+    <span class="pag-info">
+        Página <span th:text="${paginaActual + 1}"></span> de <span th:text="${totalPaginas}"></span>
+    </span>
+
+</div>
+
+</body>
+</html>

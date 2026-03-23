@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Delicias Candy House</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body class="bg-texture">
+
+<section class="view-section">
+
+    <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-main" alt="Logo">
+
+    <h2 class="admin-title">
+        <span>Delicias Candy House</span>
+    </h2>
+
+    <div class="login-boxes">
+
+        <!-- Caja Registro -->
+        <div class="box register">
+            <i class="fa-solid fa-user icon-register"></i>
+            <h3>¿Eres nuevo?</h3>
+            <p>Regístrate para comenzar</p>
+            <a href="/registro" class="btn-yellow">Registrarse</a>
+        </div>
+
+        <!-- Caja Login -->
+        <div class="box login">
+            <h3>Iniciar Sesión</h3>
+            <form method="POST" th:action="@{/}">
+                <input name="username" placeholder="Usuario" required>
+                <input type="password" name="password" placeholder="Contraseña" required>
+                <button class="btn-pink">Ingresar</button>
+                <br>
+                <a href="/olvide_password" style="font-size:13px; color:#b05667;">
+                    ¿Olvidaste tu contraseña?
+                </a>
+                <p th:if="${mensaje != null and !mensaje.isEmpty()}"
+                   th:text="${mensaje}"
+                   style="color:#e35d7a; margin-top:10px;"></p>
+            </form>
+        </div>
+
+    </div>
+</section>
+
+<footer>
+    <p style="margin:0 0 6px 0;">© 2026 Delicias Candy House</p>
+    <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px 18px;font-size:11.5px;opacity:0.85;">
+        <span><strong>Institución:</strong> Servicio Nacional de Aprendizaje SENA</span>
+        <span><strong>Ficha:</strong> 299154</span>
+        <span><strong>Centro de Formación:</strong> CÍES</span>
+        <span><strong>Regional:</strong> Norte de Santander</span>
+        <span><strong>Nombre del Software:</strong> Dyacesoft</span>
+        <span><strong>Número de Soporte:</strong> 321 283 7796</span>
+</footer>
+</body>
+</html>
