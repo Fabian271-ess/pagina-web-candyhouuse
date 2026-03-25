@@ -57,9 +57,26 @@ public class UsuarioController {
                                  @RequestParam String nombre_cli,
                                  @RequestParam String apellido_cli,
                                  @RequestParam Long telefono,
-                                 HttpSession session) {
+                                 HttpSession session,
+                                 Model model) {
         if (!esUsuario(session)) return "redirect:/";
-        if (clienteRepo.findByClienteDoc(cliente_doc).isPresent()) return "redirect:/panel_usuario";
+
+        if (clienteRepo.findByClienteDoc(cliente_doc).isPresent()) {
+            model.addAttribute("mensaje", "Ese número de documento ya está registrado");
+            return "datos_cliente";
+        }
+
+        String telefonoStr = telefono.toString();
+        if (telefonoStr.length() != 10) {
+            model.addAttribute("mensaje", "El teléfono debe tener exactamente 10 dígitos");
+            return "datos_cliente";
+        }
+
+        if (clienteRepo.findByTelefono(telefono).isPresent()) {
+            model.addAttribute("mensaje", "Ese número de teléfono ya está registrado");
+            return "datos_cliente";
+        }
+
         Long idUsuario = (Long) session.getAttribute("id_usuario");
         Cliente c = new Cliente();
         c.setClienteDoc(cliente_doc);
@@ -116,22 +133,18 @@ public class UsuarioController {
         if (!esUsuario(session)) return "redirect:/";
         Long idUsuario = (Long) session.getAttribute("id_usuario");
 
-        // Obtener el producto y verificar que exista
         Producto prod = productoRepo.findById(productoCod).orElse(null);
         if (prod == null) return "redirect:/ver_productos_usuario";
 
-        // Calcular cuanto tiene ya en el carrito
         int cantidadEnCarrito = carritoRepo
                 .findByIdUsuarioAndProductoCod(idUsuario, productoCod)
                 .map(Carrito::getCantidad)
                 .orElse(0);
 
-        // Validar que la cantidad total no supere el stock disponible
         if (cantidadEnCarrito + cantidad > prod.getExistenciaProd()) {
             return "redirect:/ver_productos_usuario?errorStock=" + prod.getNombrePro();
         }
 
-        // Agregar o incrementar en el carrito
         Optional<Carrito> existe = carritoRepo.findByIdUsuarioAndProductoCod(idUsuario, productoCod);
         if (existe.isPresent()) {
             Carrito item = existe.get();
@@ -174,6 +187,11 @@ public class UsuarioController {
         if (!esUsuario(session)) return "redirect:/";
         if (productosSeleccionados == null || productosSeleccionados.isEmpty()) return "redirect:/carrito";
 
+        LocalDate fechaEntrega = LocalDate.parse(fecha_entrega);
+        if (fechaEntrega.isBefore(LocalDate.now())) {
+            return "redirect:/carrito?errorFecha=1";
+        }
+
         Long idUsuario = (Long) session.getAttribute("id_usuario");
 
         // 1. Validar stock de todos los productos antes de crear el pedido
@@ -192,7 +210,7 @@ public class UsuarioController {
         // 2. Crear pedido
         Pedido pedido = new Pedido();
         pedido.setIdUsuario(idUsuario);
-        pedido.setFechaEntrega(LocalDate.parse(fecha_entrega));
+        pedido.setFechaEntrega(fechaEntrega);
         pedido.setDireccionEnvio(direccion);
         pedido.setCiudad(ciudad);
         pedido.setTelefonoContacto(telefono);
@@ -227,11 +245,9 @@ public class UsuarioController {
                 detalle.setNota(nota);
                 detalleRepo.save(detalle);
 
-                // Reducir stock
                 prod.setExistenciaProd(prod.getExistenciaProd() - cantidad);
                 productoRepo.save(prod);
 
-                // Limpiar carrito
                 carritoRepo.deleteByIdUsuarioAndProductoCod(idUsuario, idProducto);
             }
         }
@@ -284,7 +300,7 @@ public class UsuarioController {
                                     @RequestParam String nombre_cli,
                                     @RequestParam String apellido_cli,
                                     @RequestParam Long telefono,
-                                    HttpSession session) {
+                                    HttpSession session, Model model) {
         if (!esUsuario(session)) return "redirect:/";
         Long idUsuario = (Long) session.getAttribute("id_usuario");
         Optional<Cliente> clienteOpt = clienteRepo.findByIdUsuario(idUsuario);

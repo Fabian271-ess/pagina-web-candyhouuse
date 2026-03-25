@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"><title>Usuarios - Candy House</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}"></head>
+<body class="bg-texture">
+<header class="topbar">
+    <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-small" alt="Logo">
+    <div style="display:flex; gap:10px">
+        <a href="/dashboard" class="btn-pink">Panel</a>
+        <a href="/logout" class="btn-pink">Salir</a>
+    </div>
+</header>
+<section class="clientes-section">
+    <div class="clientes-box">
+        <h2>👤 Usuarios</h2>
+        <table class="tabla-clientes">
+            <tr>
+                <th>Nombre</th>
+                <th>Tipo</th>
+                <th>Acción</th>
+            </tr>
+            <tr th:each="u : ${usuarios}">
+                <td th:text="${u.nombre}"></td>
+                <td th:text="${u.tipo}"></td>
+                <td>
+                    <a th:href="@{/editar_usuario/{n}(n=${u.nombre})}" class="btn-yellow">Editar</a>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Paginacion -->
+        <div th:replace="~{paginacion :: controles(paginaActual=${paginaActual}, totalPaginas=${totalPaginas}, url='/usuarios')}"></div>
+
+    </div>
+</section>
+<footer>© 2026 Delicias Candy House</footer>
+</body>
+</html>

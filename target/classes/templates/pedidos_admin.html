@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"><title>Pedidos - Candy House</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}"></head>
+<body class="bg-texture">
+<header class="topbar">
+    <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-small" alt="Logo">
+    <div style="display:flex; gap:10px">
+        <a href="/dashboard" class="btn-pink">Panel</a>
+        <a href="/logout" class="btn-pink">Salir</a>
+    </div>
+</header>
+<section style="flex:1; display:flex; align-items:center; justify-content:center; padding:12px 16px; overflow:hidden;">
+    <div class="detalle-container">
+        <h2>📋 Pedidos Realizados</h2>
+
+        <!-- Buscador por nombre de usuario -->
+        <form method="get" action="/ver_pedidos" style="display:flex; gap:8px; margin-bottom:12px; flex-shrink:0;">
+            <input type="text" name="buscar" th:value="${buscar}"
+                   placeholder="Buscar por nombre de usuario..."
+                   style="flex:1; padding:7px 14px; border-radius:20px; border:1px solid #f3c2cc;
+                      font-size:12px; font-family:'Poppins',sans-serif; outline:none;">
+            <button type="submit" class="btn-pink" style="padding:7px 18px; font-size:12px;">Buscar</button>
+            <a th:if="${buscar != null and !buscar.isEmpty()}" href="/ver_pedidos"
+               class="btn-yellow" style="padding:7px 18px; font-size:12px;">Limpiar</a>
+        </form>
+        <table class="detalle-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Usuario</th>
+                <th>Fecha Pedido</th>
+                <th>Entrega</th>
+                <th>Estado</th>
+                <th>Dirección</th>
+                <th>Ciudad</th>
+                <th>Teléfono</th>
+                <th>Detalle</th>
+                <th>Acción</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="vm : ${pedidos}">
+                <td th:text="${vm.pedido.idPedido}"></td>
+                <td th:text="${vm.nombreUsuario}"></td>
+                <td th:text="${vm.pedido.fechaPedido}"></td>
+                <td th:text="${vm.pedido.fechaEntrega}"></td>
+                <td>
+                    <span th:if="${vm.pedido.estado.name() == 'pendiente'}" style="color:red; font-weight:bold;">pendiente</span>
+                    <span th:if="${vm.pedido.estado.name() == 'entregado'}" style="color:green; font-weight:bold;">entregado</span>
+                    <span th:if="${vm.pedido.estado.name() == 'cancelado'}" style="color:gray; font-weight:bold;">cancelado</span>
+                </td>
+                <td th:text="${vm.pedido.direccionEnvio}"></td>
+                <td th:text="${vm.pedido.ciudad}"></td>
+                <td th:text="${vm.pedido.telefonoContacto}"></td>
+                <td>
+                    <a th:href="@{/detalle_pedido_admin/{id}(id=${vm.pedido.idPedido})}"
+                       class="btn-volver">Ver</a>
+                </td>
+                <td>
+                    <form th:action="@{/cambiar_estado/{id}(id=${vm.pedido.idPedido})}" method="post"
+                          th:if="${vm.pedido.estado.name() != 'entregado' and vm.pedido.estado.name() != 'cancelado'}">
+                        <select name="estado"
+                                onchange="this.form.submit()"
+                                style="padding:5px 8px; border-radius:12px; border:1px solid #f3c2cc;
+                                   font-size:11px; font-family:'Poppins',sans-serif; cursor:pointer;
+                                   color:#5a3a33; background:#fff; width:100%;">
+                            <option value="pendiente" th:selected="${vm.pedido.estado.name() == 'pendiente'}">pendiente</option>
+                            <option value="entregado">entregado</option>
+                            <option value="cancelado">cancelado</option>
+                        </select>
+                    </form>
+                    <span th:if="${vm.pedido.estado.name() == 'entregado'}" style="color:green; font-weight:bold;">✔ entregado</span>
+                    <span th:if="${vm.pedido.estado.name() == 'cancelado'}" style="color:gray; font-weight:bold;">✕ cancelado</span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <!-- Paginacion -->
+        <div th:replace="~{paginacion :: controles(paginaActual=${paginaActual}, totalPaginas=${totalPaginas}, url='/ver_pedidos?buscar=' + ${buscar})}"></div>
+
+    </div>
+</section>
+<footer>© 2026 Delicias Candy House</footer>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Nuevo Producto</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+
+<body class="bg-texture">
+
+<header class="topbar">
+    <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-small" alt="Logo">
+    <div style="display:flex; gap:10px">
+        <a href="/dashboard" class="btn-pink">Panel</a>
+        <a href="/logout" class="btn-pink">Salir</a>
+    </div>
+</header>
+
+<section class="producto">
+
+    <div class="box login">
+
+        <h2>Nuevo Producto</h2>
+
+        <form method="POST" th:action="@{/add_producto}">
+
+            <div class="form-group">
+                <label>Nombre del producto</label>
+
+                <!--
+                    CAMBIO 1 — Validación del nombre:
+                    - pattern="[A-Za-záéíóúÁÉÍÓÚñÑ\s]+" → solo permite letras y espacios
+                    - title → es el mensaje que muestra el navegador si el patrón no se cumple
+                    - oninput → JavaScript que se ejecuta cada vez que el usuario escribe:
+                        * Reemplaza con regex cualquier caracter que NO sea letra o espacio
+                        * Si se borró algo (el valor cambió), muestra el párrafo de aviso
+                        * Si el campo quedó limpio, oculta el aviso
+                -->
+                <input
+                        type="text"
+                        name="nombre"
+                        required
+                        pattern="[A-Za-záéíóúÁÉÍÓÚñÑ\s]+"
+                        title="El nombre solo puede contener letras, sin números ni símbolos"
+                        oninput="
+                        var limpio = this.value.replace(/[^A-Za-záéíóúÁÉÍÓÚñÑ\s]/g, '');
+                        if (limpio !== this.value) {
+                            this.value = limpio;
+                            document.getElementById('aviso-nombre').style.display = 'block';
+                        } else {
+                            document.getElementById('aviso-nombre').style.display = 'none';
+                        }
+                    "
+                >
+
+                <!-- Párrafo oculto por defecto; aparece solo cuando se detecta un número -->
+                <p id="aviso-nombre"
+                   style="display:none; color:#e35d7a; font-size:0.85rem; margin-top:4px;">
+                    ⚠️ El nombre no puede contener números ni símbolos, solo letras.
+                </p>
+            </div>
+
+            <div class="form-group">
+                <label>Categoría</label>
+                <select name="categoria" required>
+                    <option value="" disabled selected>Seleccionar categoría</option>
+                    <option value="pastel">Pastel</option>
+                    <option value="Muffins">Muffins</option>
+                    <option value="Galletas">Galletas</option>
+                    <option value="Postre Individual">Postre Individual</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Precio</label>
+                <!--
+                    CAMBIO 3 — Validación del precio:
+                    - min="1" → no permite precio en cero
+                    - required → no permite que se quede vacío
+                    - oninvalid → mensaje personalizado cuando va vacío o en cero
+                    - oninput → limpia el error cuando el usuario corrige el valor
+                -->
+                <input
+                        type="number"
+                        name="precio"
+                        min="1"
+                        required
+                        oninvalid="this.setCustomValidity('El precio no puede estar vacío ni en cero. Ingresa un valor válido.')"
+                        oninput="this.setCustomValidity('')"
+                >
+            </div>
+
+            <div class="form-group">
+                <label>Stock</label>
+
+                <!--
+                    CAMBIO 2 — Validación del stock:
+                    - min="1" → el valor mínimo ahora es 1 (antes era 0)
+                    - oninvalid → se dispara cuando el formulario intenta enviarse y el
+                      valor no cumple el mínimo; muestra un mensaje personalizado
+                      en lugar del genérico del navegador
+                    - oninput → cuando el usuario corrige el valor, limpia el mensaje
+                      personalizado para que no quede pegado en pantalla
+                -->
+                <input
+                        type="number"
+                        name="existencia"
+                        min="1"
+                        required
+                        oninvalid="this.setCustomValidity('El stock debe ser mínimo 1. No puedes crear un producto sin existencias.')"
+                        oninput="this.setCustomValidity('')"
+                >
+            </div>
+
+            <div class="form-group">
+                <label>Descripción</label>
+                <textarea name="descripcion" rows="3"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>URL de la imagen del producto</label>
+                <input type="url" name="imagenUrl" placeholder="https://ejemplo.com/imagen.jpg">
+            </div>
+
+            <div class="form-actions">
+                <button class="btn-green">Guardar</button>
+            </div>
+
+            <!-- Mensaje de error que viene desde el backend (Thymeleaf) -->
+            <p th:if="${mensaje != null and !mensaje.isEmpty()}"
+               th:text="${mensaje}"
+               style="margin-top:10px; color:#e35d7a;">
+            </p>
+
+        </form>
+
+    </div>
+
+</section>
+
+<footer>
+    © 2026 Delicias Candy House
+</footer>
+
+</body>
+</html>

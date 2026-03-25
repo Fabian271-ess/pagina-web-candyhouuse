@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>Nuevo Insumo - Candy House</title>
+  <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body class="bg-texture">
+
+<header class="topbar">
+  <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-small" alt="Logo">
+  <div style="display:flex; gap:10px">
+    <a href="/dashboard" class="btn-pink">Panel</a>
+    <a href="/logout"    class="btn-pink">Salir</a>
+  </div>
+</header>
+
+<section class="producto">
+  <div class="box login">
+
+    <h2>🧂 Nuevo Insumo</h2>
+
+    <form method="POST" th:action="@{/add_insumo}">
+
+      <div class="form-group">
+        <label>Nombre del insumo</label>
+        <input
+                type="text"
+                name="nombre"
+                placeholder="Ej: Harina de trigo"
+                required
+                pattern="[A-Za-záéíóúÁÉÍÓÚñÑ\s]+"
+                title="El nombre solo puede contener letras, sin números ni símbolos"
+                oninput="
+            var limpio = this.value.replace(/[^A-Za-záéíóúÁÉÍÓÚñÑ\s]/g, '');
+            if (limpio !== this.value) {
+              this.value = limpio;
+              document.getElementById('aviso-nombre').style.display = 'block';
+            } else {
+              document.getElementById('aviso-nombre').style.display = 'none';
+            }
+          "
+        >
+        <p id="aviso-nombre"
+           style="display:none; color:#e35d7a; font-size:0.85rem; margin-top:4px;">
+          ⚠️ El nombre no puede contener números ni símbolos, solo letras.
+        </p>
+      </div>
+
+      <div class="form-group">
+        <label>Categoría</label>
+        <select name="categoria" required>
+          <option value="" disabled selected>Seleccionar categoría</option>
+          <option value="harina">Harina</option>
+          <option value="azúcar">Azúcar</option>
+          <option value="lácteos">Lácteos</option>
+          <option value="huevos">Huevos</option>
+          <option value="grasas">Grasas</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Marca</label>
+        <input
+                type="text"
+                name="marca"
+                placeholder="Ej: La Suprema"
+                required
+        >
+      </div>
+
+      <div class="form-group">
+        <label>Costo ($)</label>
+        <input
+                type="number"
+                name="costo"
+                min="1"
+                step="0.01"
+                placeholder="0"
+                required
+                oninvalid="this.setCustomValidity('El costo no puede estar vacío ni en cero. Ingresa un valor válido.')"
+                oninput="this.setCustomValidity('')"
+        >
+      </div>
+
+      <div class="form-group">
+        <label>Stock (existencia)</label>
+        <input
+                type="number"
+                name="existencia"
+                min="1"
+                placeholder="0"
+                required
+                oninvalid="this.setCustomValidity('El stock debe ser mínimo 1. No puedes crear un insumo sin existencias.')"
+                oninput="this.setCustomValidity('')"
+        >
+      </div>
+
+      <div class="form-group">
+        <label>Descripción</label>
+        <textarea name="descripcion" rows="3" placeholder="Descripción opcional..."></textarea>
+      </div>
+
+      <div class="form-actions">
+        <a href="/insumos" class="btn-pink">Cancelar</a>
+        <button type="submit" class="btn-green">Guardar</button>
+      </div>
+
+      <p th:if="${mensaje != null and !#strings.isEmpty(mensaje)}"
+         class="mensaje-form"
+         th:text="${mensaje}"></p>
+
+    </form>
+  </div>
+</section>
+
+<footer>© 2026 Delicias Candy House</footer>
+
+</body>
+</html>

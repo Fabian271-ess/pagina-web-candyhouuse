@@ -103,7 +103,11 @@ public class AdminController {
     @PostMapping("/eliminar_producto/{id}")
     public String eliminarProducto(@PathVariable Long id, HttpSession session) {
         if (!esAdmin(session)) return "redirect:/";
-        productoRepo.deleteById(id);
+        try {
+            productoRepo.deleteById(id);
+        } catch (Exception e) {
+            return "redirect:/productos?errorEliminar=1";
+        }
         return "redirect:/productos";
     }
 
@@ -138,8 +142,8 @@ public class AdminController {
             model.addAttribute("nombre", nombre); model.addAttribute("mensaje", "No coinciden");
             return "editar_usuario";
         }
-        if (nuevaPass.length() < 8 || nuevaPass.length() > 15) {
-            model.addAttribute("nombre", nombre); model.addAttribute("mensaje", "La contraseña debe tener entre 8 y 15 caracteres");
+        if (nuevaPass.length() < 8) {
+            model.addAttribute("nombre", nombre); model.addAttribute("mensaje", "Minimo 8 caracteres");
             return "editar_usuario";
         }
         usuarioRepo.findByNombre(nombre).ifPresent(u -> {
@@ -233,18 +237,10 @@ public class AdminController {
                                 @RequestParam String estado,
                                 HttpSession session) {
         if (!esAdmin(session)) return "redirect:/";
-
         Pedido pedido = pedidoRepo.findById(idPedido).orElseThrow();
-
-        // Guardar el estado ANTERIOR antes de cambiarlo
-        // Lo necesitamos para saber si ya estaba cancelado y no restaurar stock dos veces
-        Pedido.EstadoPedido estadoAnterior = pedido.getEstado();
-
         Pedido.EstadoPedido nuevoEstado = Pedido.EstadoPedido.valueOf(estado);
         pedido.setEstado(nuevoEstado);
         pedidoRepo.save(pedido);
-
-        // ─── Lógica cuando el nuevo estado es ENTREGADO ───
         if (nuevoEstado == Pedido.EstadoPedido.entregado) {
             BigDecimal total = facturaRepo.findByIdPedido(idPedido)
                     .map(Factura::getPagoTotal).orElse(BigDecimal.ZERO);
@@ -262,23 +258,7 @@ public class AdminController {
             }
         }
 
-        // ─── Lógica cuando el nuevo estado es CANCELADO ───
-        if (nuevoEstado == Pedido.EstadoPedido.cancelado
-                && estadoAnterior != Pedido.EstadoPedido.cancelado) {
-            // La segunda condición evita restaurar el stock si ya estaba cancelado
-
-            // Restaurar el stock de cada producto del pedido
-            List<DetallePedido> detalles = detalleRepo.findByIdPedido(idPedido);
-            for (DetallePedido detalle : detalles) {
-                productoRepo.findById(detalle.getProductoCod()).ifPresent(producto -> {
-                    producto.setExistenciaProd(
-                            producto.getExistenciaProd() + detalle.getCantidad()
-                    );
-                    productoRepo.save(producto);
-                });
-            }
-
-            // Enviar correo de cancelación al cliente
+        if (nuevoEstado == Pedido.EstadoPedido.cancelado) {
             BigDecimal total = facturaRepo.findByIdPedido(idPedido)
                     .map(Factura::getPagoTotal).orElse(BigDecimal.ZERO);
             Optional<Usuario> usuario = usuarioRepo.findById(pedido.getIdUsuario());
@@ -291,7 +271,6 @@ public class AdminController {
                 catch (Exception e) { System.err.println("Error correo cancelación: " + e.getMessage()); }
             }
         }
-
         return "redirect:/ver_pedidos";
     }
 
@@ -345,7 +324,7 @@ public class AdminController {
                                    @RequestParam String categoria, @RequestParam String marca,
                                    @RequestParam BigDecimal costo, @RequestParam Integer existencia,
                                    @RequestParam(required = false) String descripcion,
-                                   HttpSession session) {
+                                   HttpSession session, Model model) {
         if (!esAdmin(session)) return "redirect:/";
         Insumo i = insumoRepo.findById(id).orElseThrow();
         i.setNombreIns(nombre); i.setCategoria(categoria); i.setMarca(marca);
@@ -358,7 +337,11 @@ public class AdminController {
     @PostMapping("/eliminar_insumo/{id}")
     public String eliminarInsumo(@PathVariable Long id, HttpSession session) {
         if (!esAdmin(session)) return "redirect:/";
-        insumoRepo.deleteById(id);
+        try {
+            insumoRepo.deleteById(id);
+        } catch (Exception e) {
+            return "redirect:/insumos?errorEliminar=1";
+        }
         return "redirect:/insumos";
     }
 

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"><title>Registro - Candy House</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}"></head>
+<body class="bg-texture">
+<section class="producto">
+    <div class="box login">
+        <h2>Crear Cuenta</h2>
+        <form method="POST" th:action="@{/registro}">
+            <input name="username" placeholder="Usuario" required
+                   th:value="${username}">
+            <input type="password" name="password" placeholder="Contraseña" minlength="8" maxlength="15" required>
+            <input type="password" name="confirm"  placeholder="Confirmar contraseña" minlength="8" maxlength="15" required>
+            <input type="email"    name="correo"   placeholder="Correo electrónico" required
+                   th:value="${correo}">
+            <p th:if="${mensaje != null and !mensaje.isEmpty()}"
+               th:text="${mensaje}" style="color:#e35d7a"></p>
+            <div class="form-actions">
+                <a href="/" class="btn-pink">Volver</a>
+                <button class="btn-green">Registrar</button>
+            </div>
+        </form>
+    </div>
+</section>
+<footer>© 2026 Delicias Candy House</footer>
+</body>
+</html>

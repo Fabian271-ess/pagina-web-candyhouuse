@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"><title>Clientes - Candy House</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}"></head>
+<body class="bg-texture">
+<header class="topbar">
+    <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-small" alt="Logo">
+    <div style="display:flex; gap:10px">
+        <a href="/dashboard" class="btn-pink">Panel</a>
+        <a href="/logout" class="btn-pink">Salir</a>
+    </div>
+</header>
+<section class="clientes-section">
+    <div class="clientes-box">
+        <h2>👨🏻‍💼 Gestión de Clientes</h2>
+        <table class="tabla-clientes">
+            <thead>
+            <tr>
+                <th>Documento</th>
+                <th>Tipo</th>
+                <th>Nombre</th>
+                <th>Teléfono</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${clientes}">
+                <td th:text="${c.clienteDoc}"></td>
+                <td th:text="${c.tipoDoc}"></td>
+                <td th:text="${c.nombreCli + ' ' + c.apellidoCli}"></td>
+                <td th:text="${c.telefono}"></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <!-- Paginacion -->
+        <div th:replace="~{paginacion :: controles(paginaActual=${paginaActual}, totalPaginas=${totalPaginas}, url='/clientes')}"></div>
+
+    </div>
+</section>
+<footer>© 2026 Delicias Candy House</footer>
+</body>
+</html>
