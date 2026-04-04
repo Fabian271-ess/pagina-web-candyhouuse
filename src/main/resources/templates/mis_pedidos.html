@@ -1,8 +1,13 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"><title>Mis Pedidos - Candy House</title>
-    <link rel="stylesheet" th:href="@{/css/styles.css}"></head>
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Mis Pedidos - Candy House</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
 <body class="bg-texture">
+
 <header class="topbar">
     <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-small" alt="Logo">
     <div style="display:flex; gap:10px">
@@ -10,6 +15,7 @@
         <a href="/logout" class="btn-pink">Salir</a>
     </div>
 </header>
+
 <section class="clientes-section">
     <div class="clientes-box">
         <h2>📋 Mis Pedidos</h2>
@@ -19,13 +25,17 @@
         </p>
 
         <table class="tabla-clientes">
+            <thead>
             <tr>
                 <th>ID</th>
                 <th>Fecha</th>
                 <th>Entrega</th>
                 <th>Ciudad</th>
                 <th>Estado</th>
+                <th>Programación</th>
             </tr>
+            </thead>
+            <tbody>
             <tr th:each="p : ${pedidos}">
                 <td th:text="${p.idPedido}"></td>
                 <td th:text="${p.fechaPedido != null ? p.fechaPedido.toLocalDate() : '—'}"></td>
@@ -39,14 +49,25 @@
                     <span th:if="${p.estado.name() == 'cancelado'}"
                           style="color:gray; font-weight:bold;" th:text="${p.estado}"></span>
                 </td>
+                <td>
+                    <a th:if="${p.estado.name() == 'pendiente'}"
+                       th:href="@{/solicitar_programacion/{id}(id=${p.idPedido})}"
+                       class="btn-yellow"
+                       style="font-size:0.8rem; padding:4px 10px;">
+                        🗓️ Programar
+                    </a>
+                    <span th:unless="${p.estado.name() == 'pendiente'}"
+                          class="sin-dato">—</span>
+                </td>
             </tr>
+            </tbody>
         </table>
 
-        <!-- Paginacion -->
         <div th:replace="~{paginacion :: controles(paginaActual=${paginaActual}, totalPaginas=${totalPaginas}, url='/mis_pedidos')}"></div>
 
     </div>
 </section>
+
 <footer>© 2026 Delicias Candy House</footer>
 </body>
 </html>

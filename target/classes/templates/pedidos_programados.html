@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>Pedidos Programados - Candy House</title>
+  <link rel="stylesheet" th:href="@{/css/styles.css}">
+  <style>
+    /* Solo el contenido central hace scroll, header y footer quedan fijos */
+    body.bg-texture {
+      height: 100vh;
+      overflow: hidden;
+    }
+    .clientes-section {
+      overflow: hidden;
+      align-items: flex-start;
+      padding: 12px 20px;
+    }
+    .clientes-box {
+      max-height: calc(100vh - 180px);
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #f48ca7 #fff8fa;
+    }
+
+    .card-programado {
+      background: #fff8fa;
+      border: 1px solid #f3c2cc;
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    .card-programado .campo label {
+      font-size: 0.75rem;
+      color: #b07a88;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      display: block;
+      margin-bottom: 3px;
+    }
+    .card-programado .campo span {
+      font-weight: 600;
+      color: #5a3a33;
+    }
+    .badge-activo {
+      background: #d4f5e2; color: #1a7a45;
+      padding: 3px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;
+    }
+    .badge-completado {
+      background: #e8f0fe; color: #1a4fa0;
+      padding: 3px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;
+    }
+    .badge-cancelado {
+      background: #fdecea; color: #c0392b;
+      padding: 3px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;
+    }
+    .barra-tiempo {
+      height: 8px; background: #f3c2cc; border-radius: 8px; margin-top: 6px; overflow: hidden;
+    }
+    .barra-tiempo-fill {
+      height: 100%; background: #e35d7a; border-radius: 8px;
+    }
+
+    /* Modal para agregar programación desde lista de pedidos */
+    .modal-prog { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4);
+      z-index:1000; justify-content:center; align-items:center; }
+    .modal-prog.active { display:flex; }
+    .modal-prog-box { background:#fff; border-radius:20px; padding:30px 36px;
+      width:460px; max-width:95vw; }
+    .modal-prog-box h3 { margin:0 0 18px; color:#e35d7a; }
+    .modal-prog-box .fg { margin-bottom:14px; }
+    .modal-prog-box .fg label { display:block; font-size:0.85rem; color:#b07a88; margin-bottom:4px; }
+    .modal-prog-box .fg input, .modal-prog-box .fg select, .modal-prog-box .fg textarea {
+      width:100%; padding:8px 12px; border-radius:10px; border:1px solid #f3c2cc;
+      font-size:0.95rem; box-sizing:border-box; }
+    .modal-prog-box .fg textarea { resize:vertical; }
+
+    /* Modal de confirmación cancelar */
+    .modal-cancel-box {
+      background: #fff;
+      border-radius: 20px;
+      padding: 36px 40px;
+      width: 420px;
+      max-width: 95vw;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(227,93,122,0.2);
+    }
+    .modal-cancel-box .icono-alerta {
+      font-size: 3rem;
+      margin-bottom: 12px;
+    }
+    .modal-cancel-box h3 {
+      margin: 0 0 8px;
+      color: #5a3a33;
+      font-size: 1.2rem;
+    }
+    .modal-cancel-box p {
+      color: #b07a88;
+      font-size: 0.92rem;
+      margin: 0 0 24px;
+    }
+    .modal-cancel-box .acciones {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    .btn-danger {
+      background: #e74c3c;
+      color: #fff;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      font-family: 'Poppins', sans-serif;
+      transition: background .2s;
+    }
+    .btn-danger:hover { background: #c0392b; }
+  </style>
+</head>
+<body class="bg-texture">
+
+<header class="topbar">
+  <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-small" alt="Logo">
+  <div style="display:flex; gap:10px">
+    <a href="/dashboard"    class="btn-pink">Panel</a>
+    <a href="/ver_pedidos"  class="btn-pink">Pedidos</a>
+    <a href="/logout"       class="btn-pink">Salir</a>
+  </div>
+</header>
+
+<section class="clientes-section">
+  <div class="clientes-box">
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+      <h2>🗓️ Pedidos Programados</h2>
+      <span style="font-size:0.85rem; color:#b07a88;">
+        Pedidos grandes con entregas en fechas acordadas
+      </span>
+    </div>
+
+    <!-- Sin programados -->
+    <div th:if="${#lists.isEmpty(programados)}"
+         style="text-align:center; padding:50px; color:#b07a88;">
+      <div style="font-size:2.5rem; margin-bottom:10px;">📅</div>
+      <p style="font-weight:600;">No hay pedidos programados activos.</p>
+      <a href="/ver_pedidos" class="btn-pink" style="margin-top:10px; display:inline-block;">
+        Ver todos los pedidos
+      </a>
+    </div>
+
+    <!-- Lista de programados -->
+    <div th:each="vm : ${programados}">
+      <div class="card-programado">
+
+        <div>
+          <div class="campo">
+            <label>Cliente</label>
+            <span th:text="${vm.nombreUsuario}"></span>
+          </div>
+          <div class="campo" style="margin-top:8px;">
+            <label>Pedido #</label>
+            <span th:text="${vm.programado.idPedido}"></span>
+          </div>
+          <div style="margin-top:10px;">
+            <span class="badge-activo"     th:if="${vm.programado.estado.name() == 'activo'}">● Activo</span>
+            <span class="badge-completado" th:if="${vm.programado.estado.name() == 'completado'}">✔ Completado</span>
+            <span class="badge-cancelado"  th:if="${vm.programado.estado.name() == 'cancelado'}">✕ Cancelado</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="campo">
+            <label>Total unidades</label>
+            <span th:text="${vm.programado.cantidadTotal} + ' uds.'"></span>
+          </div>
+          <div class="campo" style="margin-top:8px;">
+            <label>Cada</label>
+            <span th:text="${vm.programado.intervaloDias} + ' días'"></span>
+          </div>
+          <div class="campo" style="margin-top:8px;">
+            <label>Entrega final</label>
+            <span th:text="${vm.pedido != null ? vm.pedido.fechaEntrega : '—'}"></span>
+          </div>
+        </div>
+
+        <div>
+          <div class="campo">
+            <label>Inicio programación</label>
+            <span th:text="${vm.programado.fechaInicio}"></span>
+          </div>
+          <div class="campo" style="margin-top:8px;">
+            <label>Fin programación</label>
+            <span th:text="${vm.programado.fechaFin}"></span>
+          </div>
+          <div th:if="${vm.programado.notas != null}" class="campo" style="margin-top:8px;">
+            <label>Notas</label>
+            <span th:text="${vm.programado.notas}"
+                  style="font-size:0.85rem; font-weight:400;"></span>
+          </div>
+        </div>
+
+        <div th:if="${vm.programado.estado.name() == 'activo'}">
+          <button type="button"
+                  class="btn-danger"
+                  style="white-space:nowrap;"
+                  th:data-id="${vm.programado.idProgramado}"
+                  th:data-nombre="${vm.nombreUsuario}"
+                  onclick="abrirModalCancelar(this)">
+            🗑️ Cancelar
+          </button>
+          <a th:href="@{/detalle_pedido_admin/{id}(id=${vm.programado.idPedido})}"
+             class="btn-yellow" style="margin-top:8px; display:block; text-align:center;">
+            Ver detalle
+          </a>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Paginación -->
+    <div th:replace="~{paginacion :: controles(paginaActual=${paginaActual}, totalPaginas=${totalPaginas}, url='/pedidos_programados')}"></div>
+
+  </div>
+</section>
+
+<!-- Modal confirmación cancelar -->
+<div id="modalCancelar" class="modal-prog" onclick="if(event.target===this) cerrarModalCancelar()">
+  <div class="modal-cancel-box">
+    <div class="icono-alerta">⚠️</div>
+    <h3>¿Cancelar programación?</h3>
+    <p id="modalCancelarTexto">Esta acción no se puede deshacer.</p>
+    <div class="acciones">
+      <button type="button" class="btn-pink" onclick="cerrarModalCancelar()">
+        Volver
+      </button>
+      <form id="formCancelar" method="post">
+        <button type="submit" class="btn-danger">
+          Sí, cancelar
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function abrirModalCancelar(btn) {
+    var idProgramado = btn.getAttribute('data-id');
+    var nombreUsuario = btn.getAttribute('data-nombre');
+    document.getElementById('modalCancelarTexto').textContent =
+            'Vas a cancelar el pedido programado del cliente ' + nombreUsuario + '. Esta acción no se puede deshacer.';
+    document.getElementById('formCancelar').action = '/cancelar_programacion/' + idProgramado;
+    document.getElementById('modalCancelar').classList.add('active');
+  }
+  function cerrarModalCancelar() {
+    document.getElementById('modalCancelar').classList.remove('active');
+  }
+</script>
+
+<footer>© 2026 Delicias Candy House</footer>
+</body>
+</html>

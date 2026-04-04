@@ -1,83 +1,218 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"><title>Carrito - Candy House</title>
-    <link rel="stylesheet" th:href="@{/css/styles.css}"></head>
+<head>
+    <meta charset="UTF-8">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Carrito - Candy House</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <style>
+        .alerta-grande {
+            background: linear-gradient(135deg, #fff8e1, #fff3cd);
+            border: 1px solid #f0c040;
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin-bottom: 18px;
+            font-size: 0.95rem;
+            color: #7a5800;
+        }
+        .alerta-grande strong { color: #5a3a00; }
+
+        .opcion-programado {
+            background: #f8f0ff;
+            border: 1px solid #c4a0e8;
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin-top: 16px;
+        }
+        .opcion-programado h4 {
+            margin: 0 0 8px 0;
+            color: #6a2ac4;
+            font-size: 1rem;
+        }
+        .opcion-programado label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            font-weight: 500;
+            color: #4a2090;
+        }
+        .resumen-total {
+            background: #fff8fa;
+            border: 1px solid #f3c2cc;
+            border-radius: 14px;
+            padding: 14px 20px;
+            margin: 16px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .resumen-total .total-valor {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #e35d7a;
+        }
+    </style>
+</head>
 <body class="bg-texture">
+
 <header class="topbar">
     <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-small" alt="Logo">
     <div style="display:flex; gap:10px">
-        <a href="/panel_usuario" class="btn-pink">Panel</a>
-        <a href="/logout" class="btn-pink">Salir</a>
+        <!-- NUEVO: botón para seguir comprando sin perder el carrito -->
+        <a href="/ver_productos_usuario" class="btn-pink">🛍️ Seguir comprando</a>
+        <a href="/panel_usuario"         class="btn-pink">Panel</a>
+        <a href="/logout"                class="btn-pink">Salir</a>
     </div>
 </header>
+
 <section class="clientes-section carrito-section">
     <div class="clientes-box carrito-scroll">
         <h2>🛒 Mi Carrito</h2>
 
-        <!-- Error de fecha pasada -->
+        <!-- Error fecha pasada -->
         <div th:if="${param.errorFecha != null}"
              style="background:#fdecea; color:#c0392b; padding:12px 18px;
-                    border-radius:12px; margin-bottom:16px; font-size:14px;
-                    border: 1px solid #f5c6c6;">
-            ⚠ La fecha de entrega no puede ser anterior a hoy. Por favor selecciona una fecha válida.
+                border-radius:12px; margin-bottom:16px; font-size:14px;
+                border:1px solid #f5c6c6;">
+            ⚠ La fecha de entrega no puede ser anterior a hoy.
         </div>
 
-        <!-- Error de stock al finalizar compra -->
+        <!-- Error de stock al finalizar -->
         <div th:if="${param.error != null}"
              style="background:#fdecea; color:#c0392b; padding:12px 18px;
-                    border-radius:12px; margin-bottom:16px; font-size:14px;
-                    border: 1px solid #f5c6c6;">
-            ⚠ El producto "<span th:text="${param.error}"></span>"
-            no tiene suficiente stock disponible. Por favor ajusta la cantidad.
+                border-radius:12px; margin-bottom:16px; font-size:14px;
+                border:1px solid #f5c6c6;">
+            ⚠ El producto «<span th:text="${param.error}"></span>»
+            no tiene stock suficiente. Ajusta la cantidad.
         </div>
 
-        <form action="/finalizar_compra" method="POST">
-            <table class="tabla-clientes">
-                <tr>
-                    <th>Seleccionar</th>
-                    <th>Nombre</th>
-                    <th>Precio</th>
-                    <th>Cantidad</th>
-                    <th>Subtotal</th>
-                    <th>Indicación especial</th>
-                    <th>Acción</th>
-                </tr>
-                <tr th:each="p : ${productos}">
-                    <td>
-                        <input type="checkbox" name="productos_seleccionados"
-                               th:value="${p.productoCod}">
-                    </td>
-                    <td th:text="${p.nombre}"></td>
-                    <td>$<span th:text="${p.precio}"></span></td>
-                    <td th:text="${p.cantidad}"></td>
-                    <td>$<span th:text="${p.subtotal}"></span></td>
-                    <td>
-                        <input type="text"
-                               th:name="'nota_' + ${p.productoCod}"
-                               placeholder="Ej: sin nueces, poco azúcar..."
-                               maxlength="250"
-                               style="width:100%; padding:6px 10px; border-radius:12px; border:1px solid #f3c2cc; font-size:13px; color:#5a3a33; background:#fff8fa;">
-                    </td>
-                    <td>
-                        <a th:href="@{/eliminar_carrito/{id}(id=${p.productoCod})}" class="btn-pink">Eliminar</a>
-                    </td>
-                </tr>
-            </table>
-            <br>
-            <h3>Datos de Envío</h3>
-            <input type="date" name="fecha_entrega" id="fecha_entrega" required>
-            <input type="text"   name="direccion"  placeholder="Dirección" required>
-            <input type="text"   name="ciudad"     placeholder="Ciudad" required>
-            <input type="text"   name="telefono"   placeholder="Teléfono" required>
-            <br><br>
-            <button type="submit" class="btn-green">Finalizar Compra</button>
-        </form>
+        <!-- Carrito vacío -->
+        <div th:if="${#lists.isEmpty(productos)}"
+             style="text-align:center; padding:40px; color:#b07a88;">
+            <div style="font-size:3rem; margin-bottom:12px;">🛒</div>
+            <p style="font-size:1.1rem; font-weight:600;">Tu carrito está vacío</p>
+            <a href="/ver_productos_usuario" class="btn-pink" style="margin-top:12px; display:inline-block;">
+                Ver productos
+            </a>
+        </div>
+
+        <!-- Contenido del carrito -->
+        <div th:if="${!#lists.isEmpty(productos)}">
+
+            <!-- Alerta de pedido grande -->
+            <div th:if="${esPedidoGrande}" class="alerta-grande">
+                🎂 <strong>¡Pedido grande detectado!</strong>
+                Tu carrito tiene <strong th:text="${totalUnidades}"></strong> unidades en total.
+                Para pedidos de esta magnitud puedes solicitar una <strong>entrega programada</strong>
+                con fechas y plazos acordados con nosotros.
+            </div>
+
+            <form action="/finalizar_compra" method="POST" id="formCompra">
+
+                <table class="tabla-clientes">
+                    <tr>
+                        <th>✓</th>
+                        <th>Nombre</th>
+                        <th>Precio unit.</th>
+                        <th>Cantidad</th>
+                        <th>Subtotal</th>
+                        <th>Indicación especial</th>
+                        <th>Quitar</th>
+                    </tr>
+                    <tr th:each="p : ${productos}">
+                        <td>
+                            <input type="checkbox" name="productos_seleccionados"
+                                   th:value="${p.productoCod}" checked>
+                        </td>
+                        <td th:text="${p.nombre}" style="font-weight:600;"></td>
+                        <td>$<span th:text="${#numbers.formatInteger(p.precio, 0, 'COMMA')}"></span></td>
+                        <td th:text="${p.cantidad}"></td>
+                        <td style="font-weight:700; color:#e35d7a;">
+                            $<span th:text="${#numbers.formatInteger(p.subtotal, 0, 'COMMA')}"></span>
+                        </td>
+                        <td>
+                            <input type="text"
+                                   th:name="'nota_' + ${p.productoCod}"
+                                   placeholder="Ej: sin nueces, poco azúcar..."
+                                   maxlength="250"
+                                   style="width:100%; padding:6px 10px; border-radius:12px;
+                            border:1px solid #f3c2cc; font-size:13px; color:#5a3a33;">
+                        </td>
+                        <td>
+                            <a th:href="@{/eliminar_carrito/{id}(id=${p.productoCod})}"
+                               class="btn-pink" style="font-size:0.8rem;">✕</a>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Opción de pedido programado — siempre visible -->
+                <div class="opcion-programado">
+                    <h4>🗓️ ¿Solicitar entrega programada?</h4>
+
+                    <!-- Pedido grande: mensaje de recomendación -->
+                    <div th:if="${esPedidoGrande}"
+                         style="background:#f0fff8; border:1px solid #a0e0c0; border-radius:10px;
+                                padding:10px 14px; margin-bottom:12px; font-size:0.88rem; color:#1a7a45;">
+                        ✅ Con <strong th:text="${totalUnidades}"></strong> unidades, te recomendamos
+                        la entrega programada para coordinar mejor los tiempos de producción y entrega.
+                    </div>
+
+                    <!-- Pedido normal: aviso de que igual pueden solicitarlo -->
+                    <div th:unless="${esPedidoGrande}"
+                         style="background:#f0f6ff; border:1px solid #a0c8f0; border-radius:10px;
+                                padding:10px 14px; margin-bottom:12px; font-size:0.88rem; color:#1a4fa0;">
+                        ℹ️ Aunque tu pedido es pequeño, puedes solicitar entrega programada
+                        si necesitas coordinar fechas específicas de entrega.
+                    </div>
+
+                    <label>
+                        <input type="checkbox" name="esProgramado" value="true" id="chkProgramado">
+                        Sí, quiero coordinar la entrega con el equipo de Candy House
+                    </label>
+                    <p style="font-size:0.82rem; color:#9070b0; margin:8px 0 0 28px;">
+                        Al activar esta opción podrás agregar notas sobre los tiempos que necesitas.
+                        El equipo te contactará para definir el cronograma.
+                    </p>
+                </div>
+
+                <br>
+                <h3>📦 Datos de Envío</h3>
+
+                <div class="form-group">
+                    <label>Fecha de entrega</label>
+                    <input type="date" name="fecha_entrega" id="fecha_entrega" required>
+                </div>
+                <div class="form-group">
+                    <label>Dirección</label>
+                    <input type="text" name="direccion" placeholder="Dirección completa" required>
+                </div>
+                <div style="display:flex; gap:12px;">
+                    <div class="form-group" style="flex:1">
+                        <label>Ciudad</label>
+                        <input type="text" name="ciudad" placeholder="Ciudad" required>
+                    </div>
+                    <div class="form-group" style="flex:1">
+                        <label>Teléfono de contacto</label>
+                        <input type="text" name="telefono" placeholder="Ej: 3001234567" required>
+                    </div>
+                </div>
+
+                <br>
+                <button type="submit" class="btn-green" style="width:100%; font-size:1rem; padding:14px;">
+                    ✅ Confirmar pedido
+                </button>
+
+            </form>
+        </div>
+
     </div>
 </section>
+
 <footer>© 2026 Delicias Candy House</footer>
 
 <script>
-    // Establecer fecha mínima como hoy (fecha local, no UTC)
+    // Fecha mínima = hoy (hora local)
     var ahora = new Date();
     var hoy = ahora.getFullYear() + '-' +
         String(ahora.getMonth() + 1).padStart(2, '0') + '-' +

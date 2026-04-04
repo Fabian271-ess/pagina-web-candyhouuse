@@ -32,4 +32,38 @@ public class Insumo {
 
     @Column(name = "existencia_ins", nullable = false)
     private Integer existenciaIns;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "unidad_medida", nullable = false, length = 10)
+    private UnidadMedida unidadMedida = UnidadMedida.kg;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_insumo", nullable = false, length = 10)
+    private TipoInsumo tipoInsumo = TipoInsumo.solido;
+
+    public enum UnidadMedida {
+        kg, g, l, ml, unidad;
+
+        public String etiqueta() {
+            return switch (this) {
+                case kg     -> "Kilogramos (kg)";
+                case g      -> "Gramos (g)";
+                case l      -> "Litros (l)";
+                case ml     -> "Mililitros (ml)";
+                case unidad -> "Unidades";
+            };
+        }
+    }
+
+    public enum TipoInsumo {
+        solido, liquido, otro;
+
+        public String etiqueta() {
+            return switch (this) {
+                case solido  -> "Sólido";
+                case liquido -> "Líquido";
+                case otro    -> "Otro";
+            };
+        }
+    }
 }

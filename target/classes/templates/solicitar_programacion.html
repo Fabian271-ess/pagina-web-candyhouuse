@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>Entrega Programada - Candy House</title>
+  <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body class="bg-texture">
+
+<header class="topbar">
+  <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-small" alt="Logo">
+  <div style="display:flex; gap:10px">
+    <a href="/panel_usuario" class="btn-pink">Panel</a>
+    <a href="/logout"        class="btn-pink">Salir</a>
+  </div>
+</header>
+
+<section class="producto">
+  <div class="box login">
+
+    <h2>🗓️ Solicitar Entrega Programada</h2>
+
+    <p style="color:#b07a88; font-size:0.95rem; margin-bottom:20px; text-align:center;">
+      Tu pedido <strong style="color:#e35d7a;" th:text="'#' + ${pedido.idPedido}"></strong>
+      ha sido registrado. Cuéntanos cómo necesitas las entregas y nuestro equipo
+      se pondrá en contacto contigo para confirmar el cronograma.
+    </p>
+
+    <div style="background:#fdeaf0; border:1px solid #f3c2cc; border-radius:12px;
+                padding:14px 18px; margin-bottom:20px; font-size:0.9rem; color:#7a3a4a;">
+      📦 Fecha de entrega acordada:
+      <strong th:text="${pedido.fechaEntrega}"></strong>
+    </div>
+
+    <form method="post"
+          th:action="@{/solicitar_programacion/{id}(id=${pedido.idPedido})}">
+
+      <div class="form-group">
+        <label>¿Tienes preferencias de entrega? (opcional)</label>
+        <textarea name="notas" rows="5"
+                  placeholder="Ej: Necesito la mitad el 10 de mayo y el resto el 20 de mayo. Solo puedo recibir entre semana..."
+                  maxlength="300"
+                  style="width:100%; padding:10px 14px; border-radius:12px;
+                         border:1px solid #f3c2cc; font-size:0.95rem; resize:vertical;
+                         box-sizing:border-box;"></textarea>
+        <p style="font-size:0.8rem; color:#b07a88; margin-top:4px;">
+          Máximo 300 caracteres. El equipo ajustará el cronograma contigo.
+        </p>
+      </div>
+
+      <div class="form-actions">
+        <a href="/mis_pedidos" class="btn-pink">Omitir</a>
+        <button type="submit" class="btn-green">Enviar solicitud</button>
+      </div>
+
+    </form>
+
+  </div>
+</section>
+
+<footer>© 2026 Delicias Candy House</footer>
+</body>
+</html>

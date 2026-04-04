@@ -9,13 +9,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
+import java.time.LocalDate;
+import java.time.temporal.WeekFields;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Controller
@@ -30,6 +36,10 @@ public class AdminController {
     @Autowired private FacturaRepository facturaRepo;
     @Autowired private CorreoService correoService;
     @Autowired private PdfService pdfService;
+
+    // ─── NUEVO ───
+    @Autowired private PedidoProgramadoRepository programadoRepo;
+    @Autowired private InformeRepository informeRepo;
 
     private static final int PAGE_SIZE = 5;
 
@@ -48,8 +58,8 @@ public class AdminController {
                             @RequestParam(defaultValue = "") String buscar) {
         if (!esAdmin(session)) return "redirect:/";
         Page<Producto> paginado = buscar.trim().isEmpty()
-                ? productoRepo.findAll(PageRequest.of(page, 8, Sort.by("productoCod").descending()))
-                : productoRepo.buscar(buscar.trim(), PageRequest.of(page, 8, Sort.by("productoCod").descending()));
+                ? productoRepo.findAll(PageRequest.of(page, 10, Sort.by("productoCod").descending()))
+                : productoRepo.buscar(buscar.trim(), PageRequest.of(page, 10, Sort.by("productoCod").descending()));
         model.addAttribute("productos",    paginado.getContent());
         model.addAttribute("paginaActual", page);
         model.addAttribute("totalPaginas", paginado.getTotalPages());
@@ -129,7 +139,7 @@ public class AdminController {
     @GetMapping("/editar_usuario/{nombre}")
     public String editarUsuarioForm(@PathVariable String nombre, HttpSession session, Model model) {
         if (!esAdmin(session)) return "redirect:/";
-        model.addAttribute("nombre", nombre);
+        model.addAttribute("nombre",  nombre);
         model.addAttribute("mensaje", "");
         return "editar_usuario";
     }
@@ -169,7 +179,7 @@ public class AdminController {
     }
 
     // =========================================================
-    // PEDIDOS ADMIN — paginado + búsqueda por nombre
+    // PEDIDOS ADMIN — paginado + búsqueda
     // =========================================================
     @GetMapping("/ver_pedidos")
     public String verPedidos(HttpSession session, Model model,
@@ -178,19 +188,14 @@ public class AdminController {
         if (!esAdmin(session)) return "redirect:/";
 
         Page<Pedido> paginado;
-
         if (!buscar.trim().isEmpty()) {
-            // Buscar usuarios cuyo nombre contenga el texto
             List<Long> ids = usuarioRepo.findAll().stream()
                     .filter(u -> u.getNombre().toLowerCase().contains(buscar.toLowerCase()))
                     .map(Usuario::getIdUsuario)
                     .collect(Collectors.toList());
-            if (ids.isEmpty()) {
-                paginado = Page.empty();
-            } else {
-                paginado = pedidoRepo.findByIdUsuarioIn(ids,
-                        PageRequest.of(page, PAGE_SIZE, Sort.by("idPedido").descending()));
-            }
+            paginado = ids.isEmpty() ? Page.empty()
+                    : pedidoRepo.findByIdUsuarioIn(ids,
+                    PageRequest.of(page, PAGE_SIZE, Sort.by("idPedido").descending()));
         } else {
             paginado = pedidoRepo.findAll(
                     PageRequest.of(page, PAGE_SIZE, Sort.by("idPedido").descending()));
@@ -199,7 +204,8 @@ public class AdminController {
         List<PedidoViewModel> pedidosVM = paginado.getContent().stream().map(p -> {
             String nombreUsuario = usuarioRepo.findById(p.getIdUsuario())
                     .map(Usuario::getNombre).orElse("Desconocido");
-            return new PedidoViewModel(p, nombreUsuario);
+            boolean tieneProgramacion = programadoRepo.existsByIdPedido(p.getIdPedido());
+            return new PedidoViewModel(p, nombreUsuario, tieneProgramacion);
         }).collect(Collectors.toList());
 
         model.addAttribute("pedidos",      pedidosVM);
@@ -226,6 +232,11 @@ public class AdminController {
                 .map(DetalleViewModel::getSubtotal).reduce(BigDecimal.ZERO, BigDecimal::add);
         model.addAttribute("detalles", detallesVM);
         model.addAttribute("total",    total);
+
+        // Mostrar programación si existe
+        programadoRepo.findByIdPedido(idPedido).ifPresent(pp ->
+                model.addAttribute("programacion", pp));
+
         return "detalle_pedido_admin";
     }
 
@@ -241,6 +252,7 @@ public class AdminController {
         Pedido.EstadoPedido nuevoEstado = Pedido.EstadoPedido.valueOf(estado);
         pedido.setEstado(nuevoEstado);
         pedidoRepo.save(pedido);
+
         if (nuevoEstado == Pedido.EstadoPedido.entregado) {
             BigDecimal total = facturaRepo.findByIdPedido(idPedido)
                     .map(Factura::getPagoTotal).orElse(BigDecimal.ZERO);
@@ -256,6 +268,11 @@ public class AdminController {
                 try { correoService.enviarPedidoEntregado(usuario.get().getCorreo(), nombreCliente, pedido, total, pdfBytes); }
                 catch (Exception e) { System.err.println("Error correo: " + e.getMessage()); }
             }
+            // Marcar programación como completada si existe
+            programadoRepo.findByIdPedido(idPedido).ifPresent(pp -> {
+                pp.setEstado(PedidoProgramado.EstadoProgramado.completado);
+                programadoRepo.save(pp);
+            });
         }
 
         if (nuevoEstado == Pedido.EstadoPedido.cancelado) {
@@ -275,7 +292,7 @@ public class AdminController {
     }
 
     // =========================================================
-    // INSUMOS — paginado
+    // INSUMOS — paginado (CON unidad y tipo)
     // =========================================================
     @GetMapping("/insumos")
     public String insumos(HttpSession session, Model model,
@@ -292,20 +309,31 @@ public class AdminController {
     @GetMapping("/add_insumo")
     public String addInsumoForm(HttpSession session, Model model) {
         if (!esAdmin(session)) return "redirect:/";
-        model.addAttribute("mensaje", "");
+        model.addAttribute("mensaje",       "");
+        model.addAttribute("unidades",      Insumo.UnidadMedida.values());
+        model.addAttribute("tiposInsumo",   Insumo.TipoInsumo.values());
         return "add_insumo";
     }
 
     @PostMapping("/add_insumo")
-    public String addInsumoPost(@RequestParam String nombre, @RequestParam String categoria,
-                                @RequestParam String marca, @RequestParam BigDecimal costo,
+    public String addInsumoPost(@RequestParam String nombre,
+                                @RequestParam String categoria,
+                                @RequestParam String marca,
+                                @RequestParam BigDecimal costo,
                                 @RequestParam Integer existencia,
+                                @RequestParam String unidadMedida,
+                                @RequestParam String tipoInsumo,
                                 @RequestParam(required = false) String descripcion,
                                 HttpSession session) {
         if (!esAdmin(session)) return "redirect:/";
         Insumo i = new Insumo();
-        i.setNombreIns(nombre); i.setCategoria(categoria); i.setMarca(marca);
-        i.setCosto(costo); i.setExistenciaIns(existencia);
+        i.setNombreIns(nombre);
+        i.setCategoria(categoria);
+        i.setMarca(marca);
+        i.setCosto(costo);
+        i.setExistenciaIns(existencia);
+        i.setUnidadMedida(Insumo.UnidadMedida.valueOf(unidadMedida));
+        i.setTipoInsumo(Insumo.TipoInsumo.valueOf(tipoInsumo));
         i.setDescripcion(descripcion != null && !descripcion.isBlank() ? descripcion : null);
         insumoRepo.save(i);
         return "redirect:/insumos";
@@ -314,21 +342,33 @@ public class AdminController {
     @GetMapping("/editar_insumo/{id}")
     public String editarInsumoForm(@PathVariable Long id, HttpSession session, Model model) {
         if (!esAdmin(session)) return "redirect:/";
-        model.addAttribute("insumo", insumoRepo.findById(id).orElseThrow());
-        model.addAttribute("mensaje", "");
+        model.addAttribute("insumo",       insumoRepo.findById(id).orElseThrow());
+        model.addAttribute("mensaje",      "");
+        model.addAttribute("unidades",     Insumo.UnidadMedida.values());
+        model.addAttribute("tiposInsumo",  Insumo.TipoInsumo.values());
         return "editar_insumo";
     }
 
     @PostMapping("/editar_insumo/{id}")
-    public String editarInsumoPost(@PathVariable Long id, @RequestParam String nombre,
-                                   @RequestParam String categoria, @RequestParam String marca,
-                                   @RequestParam BigDecimal costo, @RequestParam Integer existencia,
+    public String editarInsumoPost(@PathVariable Long id,
+                                   @RequestParam String nombre,
+                                   @RequestParam String categoria,
+                                   @RequestParam String marca,
+                                   @RequestParam BigDecimal costo,
+                                   @RequestParam Integer existencia,
+                                   @RequestParam String unidadMedida,
+                                   @RequestParam String tipoInsumo,
                                    @RequestParam(required = false) String descripcion,
                                    HttpSession session, Model model) {
         if (!esAdmin(session)) return "redirect:/";
         Insumo i = insumoRepo.findById(id).orElseThrow();
-        i.setNombreIns(nombre); i.setCategoria(categoria); i.setMarca(marca);
-        i.setCosto(costo); i.setExistenciaIns(existencia);
+        i.setNombreIns(nombre);
+        i.setCategoria(categoria);
+        i.setMarca(marca);
+        i.setCosto(costo);
+        i.setExistenciaIns(existencia);
+        i.setUnidadMedida(Insumo.UnidadMedida.valueOf(unidadMedida));
+        i.setTipoInsumo(Insumo.TipoInsumo.valueOf(tipoInsumo));
         i.setDescripcion(descripcion != null && !descripcion.isBlank() ? descripcion : null);
         insumoRepo.save(i);
         return "redirect:/insumos";
@@ -346,46 +386,230 @@ public class AdminController {
     }
 
     // =========================================================
+    // PEDIDOS PROGRAMADOS (grandes)
+    // =========================================================
+
+    /** Ver todos los pedidos programados activos — paginado */
+    @GetMapping("/pedidos_programados")
+    public String pedidosProgramados(@RequestParam(defaultValue = "0") int page,
+                                     HttpSession session, Model model) {
+        if (!esAdmin(session)) return "redirect:/";
+        Page<PedidoProgramado> paginado = programadoRepo.findByEstadoOrderByFechaFinAsc(
+                PedidoProgramado.EstadoProgramado.activo,
+                PageRequest.of(page, PAGE_SIZE));
+
+        List<PedidoProgramadoVM> vms = paginado.getContent().stream().map(pp -> {
+            Pedido p = pedidoRepo.findById(pp.getIdPedido()).orElse(null);
+            String usuario = p != null
+                    ? usuarioRepo.findById(p.getIdUsuario()).map(Usuario::getNombre).orElse("?")
+                    : "?";
+            return new PedidoProgramadoVM(pp, p, usuario);
+        }).collect(Collectors.toList());
+
+        model.addAttribute("programados",  vms);
+        model.addAttribute("paginaActual", page);
+        model.addAttribute("totalPaginas", paginado.getTotalPages());
+        return "pedidos_programados";
+    }
+
+    /** Crear/guardar una programación para un pedido existente */
+    @PostMapping("/programar_pedido/{idPedido}")
+    public String programarPedido(@PathVariable Long idPedido,
+                                  @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaInicio,
+                                  @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fechaFin,
+                                  @RequestParam Integer intervaloDias,
+                                  @RequestParam(required = false) String notas,
+                                  HttpSession session) {
+        if (!esAdmin(session)) return "redirect:/";
+
+        // Calcular cantidad total del pedido
+        int cantidadTotal = detalleRepo.findByIdPedido(idPedido)
+                .stream().mapToInt(DetallePedido::getCantidad).sum();
+
+        PedidoProgramado pp = programadoRepo.findByIdPedido(idPedido)
+                .orElse(new PedidoProgramado());
+        pp.setIdPedido(idPedido);
+        pp.setCantidadTotal(cantidadTotal);
+        pp.setFechaInicio(fechaInicio);
+        pp.setFechaFin(fechaFin);
+        pp.setIntervaloDias(intervaloDias);
+        pp.setNotas(notas != null && !notas.isBlank() ? notas : null);
+        pp.setEstado(PedidoProgramado.EstadoProgramado.activo);
+        programadoRepo.save(pp);
+
+        return "redirect:/ver_pedidos?programado=1";
+    }
+
+    /** Cancelar una programación */
+    @PostMapping("/cancelar_programacion/{idProgramado}")
+    public String cancelarProgramacion(@PathVariable Long idProgramado, HttpSession session) {
+        if (!esAdmin(session)) return "redirect:/";
+        programadoRepo.findById(idProgramado).ifPresent(pp -> {
+            pp.setEstado(PedidoProgramado.EstadoProgramado.cancelado);
+            programadoRepo.save(pp);
+            // Cancelar el pedido padre para que el usuario lo vea en Mis Pedidos
+            pedidoRepo.findById(pp.getIdPedido()).ifPresent(p -> {
+                p.setEstado(Pedido.EstadoPedido.cancelado);
+                pedidoRepo.save(p);
+                // Enviar correo de cancelación al usuario
+                Optional<Usuario> usuario = usuarioRepo.findById(p.getIdUsuario());
+                if (usuario.isPresent() && usuario.get().getCorreo() != null) {
+                    BigDecimal total = facturaRepo.findByIdPedido(p.getIdPedido())
+                            .map(Factura::getPagoTotal).orElse(BigDecimal.ZERO);
+                    Optional<Cliente> cliente = clienteRepo.findByIdUsuario(p.getIdUsuario());
+                    String nombreCliente = cliente.isPresent()
+                            ? cliente.get().getNombreCli() + " " + cliente.get().getApellidoCli()
+                            : usuario.get().getNombre();
+                    try { correoService.enviarPedidoCancelado(usuario.get().getCorreo(), nombreCliente, p, total); }
+                    catch (Exception e) { System.err.println("Error correo cancelación programado: " + e.getMessage()); }
+                }
+            });
+        });
+        return "redirect:/pedidos_programados";
+    }
+
+    // =========================================================
+    // INFORMES — semanal, mensual, anual
+    // =========================================================
+
+    @GetMapping("/informes")
+    public String informes(HttpSession session, Model model) {
+        if (!esAdmin(session)) return "redirect:/";
+        model.addAttribute("tipoSeleccionado", "");
+        return "informes";
+    }
+
+    @GetMapping("/informes/ver")
+    public String verInforme(HttpSession session, Model model,
+                             @RequestParam String tipo,
+                             @RequestParam(required = false)
+                             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate referencia) {
+        if (!esAdmin(session)) return "redirect:/";
+
+        LocalDate hoy = LocalDate.now();
+        if (referencia == null) referencia = hoy;
+
+        LocalDate inicio;
+        LocalDate fin;
+
+        switch (tipo) {
+            case "semanal" -> {
+                // Semana lunes–domingo de la fecha referencia
+                WeekFields wf = WeekFields.of(Locale.forLanguageTag("es-CO"));
+                inicio = referencia.with(wf.dayOfWeek(), 1);
+                fin    = referencia.with(wf.dayOfWeek(), 7);
+            }
+            case "mensual" -> {
+                inicio = referencia.withDayOfMonth(1);
+                fin    = referencia.withDayOfMonth(referencia.lengthOfMonth());
+            }
+            case "anual" -> {
+                inicio = referencia.withDayOfYear(1);
+                fin    = referencia.withDayOfYear(referencia.lengthOfYear());
+            }
+            default -> {
+                return "redirect:/informes";
+            }
+        }
+
+        // Datos del informe
+        BigDecimal totalVentas    = informeRepo.totalVentasEnRango(inicio, fin);
+        Long totalEntregados      = informeRepo.contarPedidosEntregados(inicio, fin);
+        Long totalCancelados      = informeRepo.contarPedidosCancelados(inicio, fin);
+        List<Pedido> pedidos      = informeRepo.pedidosEntregadosEnRango(inicio, fin);
+        List<Object[]> topProductos = informeRepo.productosMasVendidosEnRango(inicio, fin);
+
+        // Enriquecer top de productos con nombre
+        List<ProductoVentaVM> productosVM = topProductos.stream().limit(5).map(row -> {
+            Long codProd      = ((Number) row[0]).longValue();
+            Long cantVendida  = ((Number) row[1]).longValue();
+            String nombre     = productoRepo.findById(codProd)
+                    .map(Producto::getNombrePro).orElse("Producto #" + codProd);
+            return new ProductoVentaVM(nombre, cantVendida);
+        }).collect(Collectors.toList());
+
+        // Enriquecer lista de pedidos con nombre usuario
+        List<PedidoViewModel> pedidosVM = pedidos.stream().map(p -> {
+            String nombreU = usuarioRepo.findById(p.getIdUsuario())
+                    .map(Usuario::getNombre).orElse("?");
+            return new PedidoViewModel(p, nombreU, programadoRepo.existsByIdPedido(p.getIdPedido()));
+        }).collect(Collectors.toList());
+
+        model.addAttribute("tipo",            tipo);
+        model.addAttribute("inicio",          inicio);
+        model.addAttribute("fin",             fin);
+        model.addAttribute("referencia",      referencia);
+        model.addAttribute("totalVentas",     totalVentas);
+        model.addAttribute("totalEntregados", totalEntregados);
+        model.addAttribute("totalCancelados", totalCancelados);
+        model.addAttribute("pedidos",         pedidosVM);
+        model.addAttribute("topProductos",    productosVM);
+        model.addAttribute("tipoSeleccionado", tipo);
+
+        return "informes";
+    }
+
+    // =========================================================
     // HELPERS
     // =========================================================
     private boolean esAdmin(HttpSession s) {
         return "admin".equals(s.getAttribute("tipo"));
     }
 
+    // ── ViewModels ──────────────────────────────────────────
+
     public static class PedidoViewModel {
-        private final Pedido pedido;
-        private final String nombreUsuario;
-        public PedidoViewModel(Pedido p, String n) {
-            this.pedido = p;
-            this.nombreUsuario = n; }
-        public Pedido getPedido()        {
-            return pedido; }
-        public String getNombreUsuario() {
-            return nombreUsuario; }
+        private final Pedido  pedido;
+        private final String  nombreUsuario;
+        private final boolean tieneProgramacion;
+
+        public PedidoViewModel(Pedido p, String n, boolean prog) {
+            this.pedido           = p;
+            this.nombreUsuario    = n;
+            this.tieneProgramacion = prog;
+        }
+        public Pedido  getPedido()           { return pedido; }
+        public String  getNombreUsuario()    { return nombreUsuario; }
+        public boolean isTieneProgramacion() { return tieneProgramacion; }
     }
 
     public static class DetalleViewModel {
-        private final String nombreProducto;
-        private final Integer cantidad;
+        private final String     nombreProducto;
+        private final Integer    cantidad;
         private final BigDecimal precioUnit;
         private final BigDecimal subtotal;
-        private final String nota;
+        private final String     nota;
+
         public DetalleViewModel(String n, Integer c, BigDecimal p, BigDecimal s, String nota) {
-            this.nombreProducto = n;
-            this.cantidad = c;
-            this.precioUnit = p;
-            this.subtotal = s;
-            this.nota = nota;
+            this.nombreProducto = n; this.cantidad = c; this.precioUnit = p;
+            this.subtotal = s;       this.nota = nota;
         }
-        public String     getNombreProducto() {
-            return nombreProducto; }
-        public Integer    getCantidad()        {
-            return cantidad; }
-        public BigDecimal getPrecioUnit()      {
-            return precioUnit; }
-        public BigDecimal getSubtotal()        {
-            return subtotal; }
-        public String     getNota()            {
-            return nota; }
+        public String     getNombreProducto() { return nombreProducto; }
+        public Integer    getCantidad()        { return cantidad; }
+        public BigDecimal getPrecioUnit()      { return precioUnit; }
+        public BigDecimal getSubtotal()        { return subtotal; }
+        public String     getNota()            { return nota; }
+    }
+
+    public static class PedidoProgramadoVM {
+        private final PedidoProgramado programado;
+        private final Pedido           pedido;
+        private final String           nombreUsuario;
+
+        public PedidoProgramadoVM(PedidoProgramado pp, Pedido p, String u) {
+            this.programado    = pp; this.pedido = p; this.nombreUsuario = u;
+        }
+        public PedidoProgramado getProgramado()   { return programado; }
+        public Pedido           getPedido()        { return pedido; }
+        public String           getNombreUsuario() { return nombreUsuario; }
+    }
+
+    public static class ProductoVentaVM {
+        private final String nombre;
+        private final Long   cantidadVendida;
+
+        public ProductoVentaVM(String n, Long c) { this.nombre = n; this.cantidadVendida = c; }
+        public String getNombre()          { return nombre; }
+        public Long   getCantidadVendida() { return cantidadVendida; }
     }
 }

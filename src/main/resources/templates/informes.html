@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>Informes - Candy House</title>
+  <link rel="stylesheet" th:href="@{/css/styles.css}">
+  <style>
+    /* Permitir scroll en esta página */
+    body.bg-texture {
+      height: auto;
+      min-height: 100vh;
+      overflow-y: auto;
+    }
+    .clientes-section {
+      overflow: visible;
+      align-items: flex-start;
+    }
+    .clientes-box {
+      max-height: none;
+      overflow: visible;
+      margin: 12px 0;
+    }
+
+    .informe-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 10px 24px;
+      border-radius: 24px;
+      border: 2px solid #f3c2cc;
+      background: #fff;
+      color: #e35d7a;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: all .2s;
+    }
+    .tab-btn.activo, .tab-btn:hover {
+      background: #e35d7a;
+      color: #fff;
+      border-color: #e35d7a;
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .kpi-card {
+      background: #fff8fa;
+      border: 1px solid #f3c2cc;
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+    }
+    .kpi-card .kpi-icon { font-size: 2rem; margin-bottom: 6px; }
+    .kpi-card .kpi-valor {
+      font-size: 1.7rem;
+      font-weight: 800;
+      color: #e35d7a;
+      line-height: 1.1;
+    }
+    .kpi-card .kpi-label {
+      font-size: 0.8rem;
+      color: #b07a88;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .kpi-card.verde   { border-color: #a0e0c0; background:#f0fff8; }
+    .kpi-card.verde .kpi-valor { color: #1a7a45; }
+    .kpi-card.rojo    { border-color: #f5c6c6; background:#fff0f0; }
+    .kpi-card.rojo .kpi-valor  { color: #c0392b; }
+    .kpi-card.azul    { border-color: #a0c8f0; background:#f0f6ff; }
+    .kpi-card.azul .kpi-valor  { color: #1a4fa0; }
+
+    .top-productos {
+      background: #fff8fa;
+      border: 1px solid #f3c2cc;
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    .top-productos h3 { margin: 0 0 14px; color: #5a3a33; font-size: 1rem; }
+    .top-bar { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+    .top-bar .nombre { flex:1; font-weight:600; color:#5a3a33; }
+    .top-bar .cant   { font-size:0.9rem; color:#b07a88; width:60px; text-align:right; }
+    .barra { flex:2; background:#f3c2cc; border-radius:8px; height:10px; overflow:hidden; }
+    .barra-fill { height:100%; background:#e35d7a; border-radius:8px; }
+
+    .selector-fecha {
+      background: #fff8fa;
+      border: 1px solid #f3c2cc;
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .selector-fecha label { font-weight:600; color:#5a3a33; }
+    .selector-fecha input { padding:8px 12px; border-radius:10px; border:1px solid #f3c2cc; font-size:0.95rem; }
+    .selector-fecha .btn-ver { padding:8px 22px; }
+
+    .tabla-informe { margin-top: 24px; }
+
+    .tabla-scroll {
+      overflow-x: auto;
+      overflow-y: auto;
+      max-height: 420px;
+      border-radius: 12px;
+      border: 1px solid #f3c2cc;
+    }
+    .tabla-scroll table {
+      min-width: 600px;
+      width: 100%;
+    }
+    .tabla-scroll thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #fdeaf0;
+    }
+
+    .top-scroll {
+      max-height: 260px;
+      overflow-y: auto;
+    }
+
+    /* Leyenda rango de fechas */
+    .rango-badge {
+      display: inline-block;
+      background: #fdeaf0;
+      color: #e35d7a;
+      border: 1px solid #f3c2cc;
+      border-radius: 20px;
+      padding: 4px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    @media print {
+      header, footer, .informe-tabs, .selector-fecha, .btn-pink, .btn-green { display:none !important; }
+      body { background: white; }
+      .clientes-box { box-shadow: none; }
+    }
+  </style>
+</head>
+<body class="bg-texture">
+
+<header class="topbar">
+  <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-small" alt="Logo">
+  <div style="display:flex; gap:10px">
+    <a href="/dashboard" class="btn-pink">Panel</a>
+    <a href="/logout"    class="btn-pink">Salir</a>
+  </div>
+</header>
+
+<section class="clientes-section informes-section">
+  <div class="clientes-box">
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:22px;">
+      <h2>📊 Informes de Ventas</h2>
+      <button onclick="window.print()" class="btn-yellow" style="font-size:0.85rem;">
+        🖨️ Imprimir
+      </button>
+    </div>
+
+    <!-- Tabs de tipo de informe -->
+    <div class="informe-tabs">
+      <a href="/informes/ver?tipo=semanal"
+         class="tab-btn"
+         th:classappend="${tipoSeleccionado == 'semanal'} ? 'activo' : ''">
+        📅 Semanal
+      </a>
+      <a href="/informes/ver?tipo=mensual"
+         class="tab-btn"
+         th:classappend="${tipoSeleccionado == 'mensual'} ? 'activo' : ''">
+        🗓️ Mensual
+      </a>
+      <a href="/informes/ver?tipo=anual"
+         class="tab-btn"
+         th:classappend="${tipoSeleccionado == 'anual'} ? 'activo' : ''">
+        📆 Anual
+      </a>
+    </div>
+
+    <!-- Estado inicial: sin selección -->
+    <div th:if="${tipoSeleccionado == null or tipoSeleccionado.isEmpty()}"
+         style="text-align:center; padding:60px; color:#b07a88;">
+      <div style="font-size:3rem; margin-bottom:12px;">📊</div>
+      <p style="font-size:1.1rem; font-weight:600;">Selecciona un tipo de informe arriba</p>
+      <p style="font-size:0.9rem;">Puedes ver ventas semanales, mensuales o anuales</p>
+    </div>
+
+    <!-- Informe con datos -->
+    <div th:if="${tipoSeleccionado != null and !tipoSeleccionado.isEmpty()}">
+
+      <!-- Selector de fecha de referencia -->
+      <div class="selector-fecha">
+        <label>
+          <span th:text="${tipoSeleccionado == 'semanal'} ? 'Semana de:' :
+                          (tipoSeleccionado == 'mensual' ? 'Mes de:' : 'Año de:')"></span>
+        </label>
+        <form method="get" action="/informes/ver" style="display:flex; gap:10px; align-items:center;">
+          <input type="hidden" name="tipo" th:value="${tipoSeleccionado}">
+          <input type="date" name="referencia" th:value="${referencia}" required>
+          <button type="submit" class="btn-pink btn-ver">Ver</button>
+        </form>
+        <span style="color:#b07a88; font-size:0.85rem;">
+          ← Cambia la fecha para ver otro período
+        </span>
+      </div>
+
+      <!-- Rango del informe -->
+      <div class="rango-badge">
+        📅 <span th:text="${inicio}"></span>
+        &nbsp;→&nbsp;
+        <span th:text="${fin}"></span>
+      </div>
+
+      <!-- KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi-card verde">
+          <div class="kpi-icon">💰</div>
+          <div class="kpi-valor">
+            $<span th:text="${#numbers.formatInteger(totalVentas, 0, 'COMMA')}"></span>
+          </div>
+          <div class="kpi-label">Total vendido</div>
+        </div>
+        <div class="kpi-card azul">
+          <div class="kpi-icon">📦</div>
+          <div class="kpi-valor" th:text="${totalEntregados}"></div>
+          <div class="kpi-label">Pedidos entregados</div>
+        </div>
+        <div class="kpi-card rojo">
+          <div class="kpi-icon">❌</div>
+          <div class="kpi-valor" th:text="${totalCancelados}"></div>
+          <div class="kpi-label">Pedidos cancelados</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon">📈</div>
+          <div class="kpi-valor">
+    <span th:if="${totalEntregados > 0}"
+          th:text="'$' + ${#numbers.formatInteger(totalVentas / totalEntregados, 0, 'COMMA')}">
+    </span>
+            <span th:unless="${totalEntregados > 0}">—</span>
+          </div>
+          <div class="kpi-label">Ticket promedio</div>
+        </div>
+      </div>
+
+      <!-- Top 5 productos más vendidos -->
+      <div class="top-productos" th:if="${!#lists.isEmpty(topProductos)}">
+        <h3>🏆 Top 5 productos más vendidos</h3>
+        <div class="top-scroll" th:with="maxVenta=${topProductos[0].cantidadVendida}">
+          <div class="top-bar" th:each="tp, iterStat : ${topProductos}">
+            <span style="color:#e35d7a; font-weight:800; width:20px;" th:text="${iterStat.count} + '.'"></span>
+            <span class="nombre" th:text="${tp.nombre}"></span>
+            <div class="barra">
+              <div class="barra-fill"
+                   th:style="'width:' + ${tp.cantidadVendida * 100 / maxVenta} + '%'"></div>
+            </div>
+            <span class="cant" th:text="${tp.cantidadVendida} + ' uds.'"></span>
+          </div>
+        </div>
+      </div>
+      <div th:if="${#lists.isEmpty(topProductos)}"
+           style="background:#f9f9f9; border-radius:14px; padding:18px; text-align:center; color:#ccc; margin-bottom:24px;">
+        Sin datos de productos para este período.
+      </div>
+
+      <!-- Tabla detallada de pedidos entregados -->
+      <div class="tabla-informe">
+        <h3 style="margin-bottom:14px; color:#5a3a33;">
+          Detalle de pedidos entregados
+          <span style="font-size:0.85rem; font-weight:400; color:#b07a88;">
+            (<span th:text="${#lists.size(pedidos)}"></span> pedidos)
+          </span>
+        </h3>
+
+        <div th:if="${#lists.isEmpty(pedidos)}"
+             style="text-align:center; color:#aaa; padding:30px;">
+          No hubo pedidos entregados en este período.
+        </div>
+
+        <div style="overflow-x: auto;" th:unless="${#lists.isEmpty(pedidos)}">
+          <table class="tabla-clientes">
+            <thead>
+            <tr>
+              <th># Pedido</th>
+              <th>Cliente</th>
+              <th>Fecha entrega</th>
+              <th>Ciudad</th>
+              <th>Estado</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="vm : ${pedidos}">
+              <td th:text="'#' + ${vm.pedido.idPedido}" style="font-weight:700;"></td>
+              <td th:text="${vm.nombreUsuario}"></td>
+              <td th:text="${vm.pedido.fechaEntrega}"></td>
+              <td th:text="${vm.pedido.ciudad}"></td>
+              <td>
+              <span style="background:#d4f5e2; color:#1a7a45; padding:2px 10px;
+                           border-radius:20px; font-size:0.8rem; font-weight:700;">
+                ✔ Entregado
+              </span>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /informe con datos -->
+
+  </div>
+</section>
+
+<footer>© 2026 Delicias Candy House</footer>
+</body>
+</html>

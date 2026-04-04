@@ -22,14 +22,18 @@ import java.util.Optional;
 @Controller
 public class UsuarioController {
 
-    @Autowired private ProductoRepository productoRepo;
-    @Autowired private CarritoRepository carritoRepo;
-    @Autowired private PedidoRepository pedidoRepo;
+    @Autowired private ProductoRepository    productoRepo;
+    @Autowired private CarritoRepository     carritoRepo;
+    @Autowired private PedidoRepository      pedidoRepo;
     @Autowired private DetallePedidoRepository detalleRepo;
-    @Autowired private ClienteRepository clienteRepo;
-    @Autowired private FacturaRepository facturaRepo;
-    @Autowired private UsuarioRepository usuarioRepo;
-    @Autowired private CorreoService correoService;
+    @Autowired private ClienteRepository     clienteRepo;
+    @Autowired private FacturaRepository     facturaRepo;
+    @Autowired private UsuarioRepository     usuarioRepo;
+    @Autowired private PedidoProgramadoRepository programadoRepo;
+    @Autowired private CorreoService         correoService;
+
+    // Umbral para mostrar opción de pedido programado al usuario
+    private static final int UMBRAL_PEDIDO_GRANDE = 50;
 
     // =========================================================
     // PANEL USUARIO
@@ -98,12 +102,18 @@ public class UsuarioController {
                                       @RequestParam(defaultValue = "") String buscar) {
         if (!esUsuario(session)) return "redirect:/";
         Page<Producto> paginado = buscar.trim().isEmpty()
-                ? productoRepo.findAll(PageRequest.of(page, 8, Sort.by("productoCod").descending()))
-                : productoRepo.buscar(buscar.trim(), PageRequest.of(page, 8, Sort.by("productoCod").descending()));
+                ? productoRepo.findAll(PageRequest.of(page, 10, Sort.by("productoCod").descending()))
+                : productoRepo.buscar(buscar.trim(), PageRequest.of(page, 10, Sort.by("productoCod").descending()));
         model.addAttribute("productos",    paginado.getContent());
         model.addAttribute("paginaActual", page);
         model.addAttribute("totalPaginas", paginado.getTotalPages());
         model.addAttribute("buscar",       buscar);
+
+        // Contar items en carrito para badge
+        Long idUsuario = (Long) session.getAttribute("id_usuario");
+        int itemsEnCarrito = carritoRepo.findByIdUsuario(idUsuario).size();
+        model.addAttribute("itemsEnCarrito", itemsEnCarrito);
+
         return "productos_usuario";
     }
 
@@ -119,16 +129,30 @@ public class UsuarioController {
         List<CarritoItem> carritoItems = items.stream().map(item -> {
             Producto p = productoRepo.findById(item.getProductoCod()).orElse(null);
             if (p == null) return null;
-            return new CarritoItem(item.getProductoCod(), p.getNombrePro(), p.getPrecio(), item.getCantidad());
+            return new CarritoItem(item.getProductoCod(), p.getNombrePro(), p.getPrecio(), item.getCantidad(), p.getExistenciaProd());
         }).filter(i -> i != null).toList();
 
-        model.addAttribute("productos", carritoItems);
+        // Calcular total de unidades para detectar pedido grande
+        int totalUnidades = carritoItems.stream().mapToInt(CarritoItem::getCantidad).sum();
+
+        model.addAttribute("productos",         carritoItems);
+        model.addAttribute("esPedidoGrande",    totalUnidades >= UMBRAL_PEDIDO_GRANDE);
+        model.addAttribute("totalUnidades",     totalUnidades);
+        model.addAttribute("umbralPedidoGrande", UMBRAL_PEDIDO_GRANDE);
+        model.addAttribute("hayProductos",      !carritoItems.isEmpty());
         return "carrito";
     }
 
+    /**
+     * Agregar producto al carrito.
+     * CAMBIO: después de agregar redirige de vuelta a productos_usuario
+     * (mantiene la página y búsqueda) en lugar de ir al panel.
+     */
     @PostMapping("/carrito/agregar")
     public String agregarCarritoCantidad(@RequestParam Long productoCod,
                                          @RequestParam Integer cantidad,
+                                         @RequestParam(defaultValue = "0") int page,
+                                         @RequestParam(defaultValue = "") String buscar,
                                          HttpSession session) {
         if (!esUsuario(session)) return "redirect:/";
         Long idUsuario = (Long) session.getAttribute("id_usuario");
@@ -142,7 +166,10 @@ public class UsuarioController {
                 .orElse(0);
 
         if (cantidadEnCarrito + cantidad > prod.getExistenciaProd()) {
-            return "redirect:/ver_productos_usuario?errorStock=" + prod.getNombrePro();
+            // Regresa a la misma página con el error de stock
+            return "redirect:/ver_productos_usuario?errorStock=" + prod.getNombrePro()
+                    + "&page=" + page
+                    + (buscar.isEmpty() ? "" : "&buscar=" + buscar);
         }
 
         Optional<Carrito> existe = carritoRepo.findByIdUsuarioAndProductoCod(idUsuario, productoCod);
@@ -158,7 +185,11 @@ public class UsuarioController {
             carritoRepo.save(item);
         }
 
-        return "redirect:/ver_productos_usuario";
+        // ✅ CLAVE: regresa a la lista de productos en la misma página,
+        //    con un parámetro de éxito para mostrar un toast de confirmación.
+        return "redirect:/ver_productos_usuario?agregado=" + prod.getNombrePro()
+                + "&page=" + page
+                + (buscar.isEmpty() ? "" : "&buscar=" + buscar);
     }
 
     @Transactional
@@ -181,11 +212,13 @@ public class UsuarioController {
             @RequestParam String direccion,
             @RequestParam String ciudad,
             @RequestParam String telefono,
+            @RequestParam(required = false, defaultValue = "false") boolean esProgramado,
             @RequestParam Map<String, String> allParams,
             HttpSession session) {
 
         if (!esUsuario(session)) return "redirect:/";
-        if (productosSeleccionados == null || productosSeleccionados.isEmpty()) return "redirect:/carrito";
+        if (productosSeleccionados == null || productosSeleccionados.isEmpty())
+            return "redirect:/carrito";
 
         LocalDate fechaEntrega = LocalDate.parse(fecha_entrega);
         if (fechaEntrega.isBefore(LocalDate.now())) {
@@ -194,15 +227,16 @@ public class UsuarioController {
 
         Long idUsuario = (Long) session.getAttribute("id_usuario");
 
-        // 1. Validar stock de todos los productos antes de crear el pedido
-        for (Long idProducto : productosSeleccionados) {
-            Optional<Carrito> itemCarrito = carritoRepo.findByIdUsuarioAndProductoCod(idUsuario, idProducto);
-            if (itemCarrito.isPresent()) {
-                Producto prod = productoRepo.findById(idProducto).orElse(null);
-                if (prod == null) continue;
-
-                if (prod.getExistenciaProd() < itemCarrito.get().getCantidad()) {
-                    return "redirect:/carrito?error=" + prod.getNombrePro();
+        // 1. Validar stock — se omite para pedidos programados (el admin gestiona producción en partes)
+        if (!esProgramado) {
+            for (Long idProducto : productosSeleccionados) {
+                Optional<Carrito> itemCarrito = carritoRepo.findByIdUsuarioAndProductoCod(idUsuario, idProducto);
+                if (itemCarrito.isPresent()) {
+                    Producto prod = productoRepo.findById(idProducto).orElse(null);
+                    if (prod == null) continue;
+                    if (prod.getExistenciaProd() < itemCarrito.get().getCantidad()) {
+                        return "redirect:/carrito?error=" + prod.getNombrePro();
+                    }
                 }
             }
         }
@@ -220,12 +254,11 @@ public class UsuarioController {
 
         BigDecimal total = BigDecimal.ZERO;
 
-        // 3. Procesar cada producto seleccionado
+        // 3. Procesar productos seleccionados
         for (Long idProducto : productosSeleccionados) {
             Optional<Carrito> itemCarrito = carritoRepo.findByIdUsuarioAndProductoCod(idUsuario, idProducto);
-
             if (itemCarrito.isPresent()) {
-                Carrito item = itemCarrito.get();
+                Carrito item  = itemCarrito.get();
                 Producto prod = productoRepo.findById(idProducto).orElse(null);
                 if (prod == null) continue;
 
@@ -245,8 +278,11 @@ public class UsuarioController {
                 detalle.setNota(nota);
                 detalleRepo.save(detalle);
 
-                prod.setExistenciaProd(prod.getExistenciaProd() - cantidad);
-                productoRepo.save(prod);
+                // Solo descontar stock si NO es programado (el admin lo gestiona en partes)
+                if (!esProgramado) {
+                    prod.setExistenciaProd(prod.getExistenciaProd() - cantidad);
+                    productoRepo.save(prod);
+                }
 
                 carritoRepo.deleteByIdUsuarioAndProductoCod(idUsuario, idProducto);
             }
@@ -264,7 +300,7 @@ public class UsuarioController {
             facturaRepo.save(factura);
         }
 
-        // 5. Enviar correo de confirmacion
+        // 5. Correo de confirmación
         try {
             Optional<Usuario> usuario = usuarioRepo.findById(idUsuario);
             if (usuario.isPresent() && usuario.get().getCorreo() != null) {
@@ -278,7 +314,54 @@ public class UsuarioController {
             System.err.println("Error enviando correo: " + e.getMessage());
         }
 
-        return "redirect:/mis_pedidos";
+        // 6. Si el usuario marcó que es pedido programado, redirigir para que indique fechas
+        if (esProgramado) {
+            return "redirect:/solicitar_programacion/" + idPedido;
+        }
+
+        return "redirect:/mis_pedidos?nuevoPedido=1";
+    }
+
+    /**
+     * Formulario para que el usuario solicite la programación del pedido grande.
+     * El admin la confirmará y ajustará desde el panel.
+     */
+    @GetMapping("/solicitar_programacion/{idPedido}")
+    public String solicitarProgramacionForm(@PathVariable Long idPedido,
+                                            HttpSession session, Model model) {
+        if (!esUsuario(session)) return "redirect:/";
+        Long idUsuario = (Long) session.getAttribute("id_usuario");
+
+        // Verificar que el pedido pertenece al usuario
+        Pedido pedido = pedidoRepo.findById(idPedido).orElse(null);
+        if (pedido == null || !pedido.getIdUsuario().equals(idUsuario))
+            return "redirect:/mis_pedidos";
+
+        model.addAttribute("pedido", pedido);
+        return "solicitar_programacion";
+    }
+
+    @PostMapping("/solicitar_programacion/{idPedido}")
+    public String guardarSolicitudProgramacion(@PathVariable Long idPedido,
+                                               @RequestParam String notas,
+                                               HttpSession session) {
+        if (!esUsuario(session)) return "redirect:/";
+
+        int cantidadTotal = detalleRepo.findByIdPedido(idPedido)
+                .stream().mapToInt(DetallePedido::getCantidad).sum();
+
+        PedidoProgramado pp = programadoRepo.findByIdPedido(idPedido)
+                .orElse(new PedidoProgramado());
+        pp.setIdPedido(idPedido);
+        pp.setCantidadTotal(cantidadTotal);
+        pp.setFechaInicio(LocalDate.now());
+        pp.setFechaFin(LocalDate.now().plusDays(30));
+        pp.setIntervaloDias(1);
+        pp.setNotas(notas != null && !notas.isBlank() ? notas : null);
+        pp.setEstado(PedidoProgramado.EstadoProgramado.activo);
+        programadoRepo.save(pp);
+
+        return "redirect:/mis_pedidos?solicitudProgramacion=1";
     }
 
     // =========================================================
@@ -305,12 +388,9 @@ public class UsuarioController {
         Long idUsuario = (Long) session.getAttribute("id_usuario");
         Optional<Cliente> clienteOpt = clienteRepo.findByIdUsuario(idUsuario);
         if (clienteOpt.isEmpty()) return "redirect:/datos_cliente";
-
         Cliente c = clienteOpt.get();
-        c.setTipoDoc(tipo_doc);
-        c.setNombreCli(nombre_cli);
-        c.setApellidoCli(apellido_cli);
-        c.setTelefono(telefono);
+        c.setTipoDoc(tipo_doc); c.setNombreCli(nombre_cli);
+        c.setApellidoCli(apellido_cli); c.setTelefono(telefono);
         clienteRepo.save(c);
         return "redirect:/panel_usuario";
     }
@@ -339,18 +419,21 @@ public class UsuarioController {
     }
 
     public static class CarritoItem {
-        private final Long productoCod;
-        private final String nombre;
+        private final Long    productoCod;
+        private final String  nombre;
         private final Integer precio;
         private final Integer cantidad;
+        private final Integer stockDisponible;
 
-        public CarritoItem(Long cod, String n, Integer p, Integer c) {
-            this.productoCod = cod; this.nombre = n; this.precio = p; this.cantidad = c;
+        public CarritoItem(Long cod, String n, Integer p, Integer c, Integer stock) {
+            this.productoCod      = cod; this.nombre = n; this.precio = p;
+            this.cantidad         = c;   this.stockDisponible = stock;
         }
-        public Long    getProductoCod() { return productoCod; }
-        public String  getNombre()      { return nombre; }
-        public Integer getPrecio()      { return precio; }
-        public Integer getCantidad()    { return cantidad; }
-        public Integer getSubtotal()    { return precio * cantidad; }
+        public Long    getProductoCod()      { return productoCod; }
+        public String  getNombre()           { return nombre; }
+        public Integer getPrecio()           { return precio; }
+        public Integer getCantidad()         { return cantidad; }
+        public Integer getSubtotal()         { return precio * cantidad; }
+        public Integer getStockDisponible()  { return stockDisponible; }
     }
 }

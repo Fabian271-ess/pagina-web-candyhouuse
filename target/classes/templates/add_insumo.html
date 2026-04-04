@@ -16,87 +16,103 @@
   </div>
 </header>
 
-<section class="producto">
+<section class="producto producto-scroll">
   <div class="box login">
 
     <h2>🧂 Nuevo Insumo</h2>
 
     <form method="POST" th:action="@{/add_insumo}">
 
+      <!-- Nombre -->
       <div class="form-group">
         <label>Nombre del insumo</label>
-        <input
-                type="text"
-                name="nombre"
-                placeholder="Ej: Harina de trigo"
-                required
-                pattern="[A-Za-záéíóúÁÉÍÓÚñÑ\s]+"
-                title="El nombre solo puede contener letras, sin números ni símbolos"
-                oninput="
-            var limpio = this.value.replace(/[^A-Za-záéíóúÁÉÍÓÚñÑ\s]/g, '');
-            if (limpio !== this.value) {
-              this.value = limpio;
-              document.getElementById('aviso-nombre').style.display = 'block';
-            } else {
-              document.getElementById('aviso-nombre').style.display = 'none';
-            }
-          "
-        >
-        <p id="aviso-nombre"
-           style="display:none; color:#e35d7a; font-size:0.85rem; margin-top:4px;">
-          ⚠️ El nombre no puede contener números ni símbolos, solo letras.
+        <input type="text" name="nombre"
+               placeholder="Ej: Harina de trigo"
+               required
+               pattern="[A-Za-záéíóúÁÉÍÓÚñÑ\s]+"
+               title="Solo letras, sin números ni símbolos"
+               oninput="
+                 var limpio = this.value.replace(/[^A-Za-záéíóúÁÉÍÓÚñÑ\s]/g, '');
+                 if (limpio !== this.value) {
+                   this.value = limpio;
+                   document.getElementById('aviso-nombre').style.display = 'block';
+                 } else {
+                   document.getElementById('aviso-nombre').style.display = 'none';
+                 }
+               ">
+        <p id="aviso-nombre" style="display:none; color:#e35d7a; font-size:0.85rem; margin-top:4px;">
+          ⚠️ Solo se permiten letras.
         </p>
       </div>
 
+      <!-- Categoría -->
       <div class="form-group">
         <label>Categoría</label>
         <select name="categoria" required>
           <option value="" disabled selected>Seleccionar categoría</option>
           <option value="harina">Harina</option>
-          <option value="azúcar">Azúcar</option>
-          <option value="lácteos">Lácteos</option>
+          <option value="azucar">Azúcar</option>
+          <option value="lacteos">Lácteos</option>
           <option value="huevos">Huevos</option>
           <option value="grasas">Grasas</option>
         </select>
       </div>
 
+      <!-- Marca -->
       <div class="form-group">
         <label>Marca</label>
-        <input
-                type="text"
-                name="marca"
-                placeholder="Ej: La Suprema"
-                required
-        >
+        <input type="text" name="marca" placeholder="Ej: La Suprema" required>
       </div>
 
+      <!-- Tipo de insumo -->
+      <div class="form-group">
+        <label>Tipo de insumo</label>
+        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:6px;">
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:500;">
+            <input type="radio" name="tipoInsumo" value="solido" checked>
+            🧱 Sólido
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:500;">
+            <input type="radio" name="tipoInsumo" value="liquido">
+            💧 Líquido
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:500;">
+            <input type="radio" name="tipoInsumo" value="otro">
+            📦 Otro (contable)
+          </label>
+        </div>
+      </div>
+
+      <!-- Unidad de medida -->
+      <div class="form-group">
+        <label>Unidad de medida</label>
+        <select name="unidadMedida" id="selectUnidad" required>
+          <option value="kg">Kilogramos (kg)</option>
+          <option value="g">Gramos (g)</option>
+        </select>
+        <p style="font-size:0.8rem; color:#b07a88; margin-top:4px;">
+          ℹ️ La unidad define cómo se registra la existencia. Ej: 5 kg de harina.
+        </p>
+      </div>
+
+      <!-- Costo -->
       <div class="form-group">
         <label>Costo ($)</label>
-        <input
-                type="number"
-                name="costo"
-                min="1"
-                step="0.01"
-                placeholder="0"
-                required
-                oninvalid="this.setCustomValidity('El costo no puede estar vacío ni en cero. Ingresa un valor válido.')"
-                oninput="this.setCustomValidity('')"
-        >
+        <input type="number" name="costo" min="1" step="0.01"
+               placeholder="0" required
+               oninvalid="this.setCustomValidity('El costo no puede ser cero.')"
+               oninput="this.setCustomValidity('')">
       </div>
 
+      <!-- Stock -->
       <div class="form-group">
-        <label>Stock (existencia)</label>
-        <input
-                type="number"
-                name="existencia"
-                min="1"
-                placeholder="0"
-                required
-                oninvalid="this.setCustomValidity('El stock debe ser mínimo 1. No puedes crear un insumo sin existencias.')"
-                oninput="this.setCustomValidity('')"
-        >
+        <label>Stock (existencia) — en la unidad seleccionada</label>
+        <input type="number" name="existencia" min="1" placeholder="0" required
+               oninvalid="this.setCustomValidity('El stock debe ser mínimo 1.')"
+               oninput="this.setCustomValidity('')">
       </div>
 
+      <!-- Descripción -->
       <div class="form-group">
         <label>Descripción</label>
         <textarea name="descripcion" rows="3" placeholder="Descripción opcional..."></textarea>
@@ -108,8 +124,7 @@
       </div>
 
       <p th:if="${mensaje != null and !#strings.isEmpty(mensaje)}"
-         class="mensaje-form"
-         th:text="${mensaje}"></p>
+         class="mensaje-form" th:text="${mensaje}"></p>
 
     </form>
   </div>
@@ -117,5 +132,15 @@
 
 <footer>© 2026 Delicias Candy House</footer>
 
+<script th:src="@{/js/insumos.js}"></script>
+<script>
+  actualizarUnidades('solido');
+
+  document.querySelectorAll('input[name="tipoInsumo"]').forEach(function(r) {
+    r.addEventListener('change', function(e) {
+      actualizarUnidades(e.target.value);
+    });
+  });
+</script>
 </body>
 </html>

@@ -16,51 +16,80 @@
   </div>
 </header>
 
-<section class="producto">
+<section class="producto producto-scroll">
   <div class="box login">
 
     <h2>✏️ Editar Insumo</h2>
 
     <form method="post" th:action="@{/editar_insumo/{id}(id=${insumo.insumoCod})}">
 
+      <!-- Nombre -->
       <div class="form-group">
         <label>Nombre del insumo</label>
         <input type="text" name="nombre" th:value="${insumo.nombreIns}" required>
       </div>
 
+      <!-- Categoría -->
       <div class="form-group">
         <label>Categoría</label>
         <select name="categoria" required>
-          <option value="harina"
-                  th:selected="${insumo.categoria == 'harina'}">Harina</option>
-          <option value="azúcar"
-                  th:selected="${insumo.categoria == 'azúcar'}">Azúcar</option>
-          <option value="lácteos"
-                  th:selected="${insumo.categoria == 'lácteos'}">Lácteos</option>
-          <option value="huevos"
-                  th:selected="${insumo.categoria == 'huevos'}">Huevos</option>
-          <option value="Grasas"
-                  th:selected="${insumo.categoria == 'Grasas'}">Grasas</option>
+          <option value="harina"  th:selected="${insumo.categoria == 'harina'}">Harina</option>
+          <option value="azucar"  th:selected="${insumo.categoria == 'azucar'}">Azúcar</option>
+          <option value="lacteos" th:selected="${insumo.categoria == 'lacteos'}">Lácteos</option>
+          <option value="huevos"  th:selected="${insumo.categoria == 'huevos'}">Huevos</option>
+          <option value="grasas"  th:selected="${insumo.categoria == 'grasas'}">Grasas</option>
         </select>
       </div>
 
+      <!-- Marca -->
       <div class="form-group">
         <label>Marca</label>
         <input type="text" name="marca" th:value="${insumo.marca}" required>
       </div>
 
+      <!-- Tipo de insumo -->
+      <div class="form-group">
+        <label>Tipo de insumo</label>
+        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:6px;">
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:500;">
+            <input type="radio" name="tipoInsumo" value="solido"
+                   th:checked="${insumo.tipoInsumo.name() == 'solido'}">
+            🧱 Sólido
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:500;">
+            <input type="radio" name="tipoInsumo" value="liquido"
+                   th:checked="${insumo.tipoInsumo.name() == 'liquido'}">
+            💧 Líquido
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:500;">
+            <input type="radio" name="tipoInsumo" value="otro"
+                   th:checked="${insumo.tipoInsumo.name() == 'otro'}">
+            📦 Otro (contable)
+          </label>
+        </div>
+      </div>
+
+      <!-- Unidad de medida -->
+      <div class="form-group">
+        <label>Unidad de medida</label>
+        <select name="unidadMedida" id="selectUnidad" required>
+          <!-- Llenado por JS al cargar -->
+        </select>
+      </div>
+
+      <!-- Costo -->
       <div class="form-group">
         <label>Costo ($)</label>
-        <input type="number" name="costo" th:value="${insumo.costo}"
-               min="0" step="0.01" required>
+        <input type="number" name="costo" th:value="${insumo.costo}" min="0" step="0.01" required>
       </div>
 
+      <!-- Stock -->
       <div class="form-group">
         <label>Stock (existencia)</label>
-        <input type="number" name="existencia" th:value="${insumo.existenciaIns}"
-               min="0" required>
+        <input type="number" name="existencia" th:value="${insumo.existenciaIns}" min="0" required>
       </div>
 
+      <!-- Descripción -->
       <div class="form-group">
         <label>Descripción</label>
         <textarea name="descripcion" rows="3"
@@ -76,10 +105,24 @@
          class="mensaje-form" th:text="${mensaje}"></p>
 
     </form>
-
   </div>
 </section>
 
 <footer>© 2026 Delicias Candy House</footer>
+
+<script th:src="@{/js/insumos.js}"></script>
+<script th:inline="javascript">
+  var tipoActual   = /*[[${insumo.tipoInsumo.name()}]]*/ 'solido';
+  var unidadActual = /*[[${insumo.unidadMedida.name()}]]*/ 'kg';
+</script>
+<script>
+  actualizarUnidades(tipoActual, unidadActual);
+
+  document.querySelectorAll('input[name="tipoInsumo"]').forEach(function(r) {
+    r.addEventListener('change', function(e) {
+      actualizarUnidades(e.target.value);
+    });
+  });
+</script>
 </body>
 </html>

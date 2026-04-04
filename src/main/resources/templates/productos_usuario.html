@@ -5,95 +5,145 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>Productos - Candy House</title>
     <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <style>
+        .carrito-badge {
+            position: relative;
+            display: inline-block;
+        }
+        .carrito-badge .badge-count {
+            position: absolute;
+            top: -8px; right: -10px;
+            background: #e35d7a;
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 700;
+            border-radius: 50%;
+            width: 18px; height: 18px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .toast-agregado {
+            position: fixed;
+            bottom: 28px; right: 28px;
+            background: #2d9e65;
+            color: #fff;
+            padding: 14px 22px;
+            border-radius: 14px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            box-shadow: 0 4px 18px rgba(45,158,101,0.3);
+            z-index: 9999;
+            animation: slideUp 0.35s ease, fadeOut 0.4s ease 3s forwards;
+        }
+        .toast-error {
+            background: #c0392b;
+        }
+        @keyframes slideUp {
+            from { opacity:0; transform: translateY(20px); }
+            to   { opacity:1; transform: translateY(0); }
+        }
+        @keyframes fadeOut {
+            to { opacity:0; transform: translateY(10px); }
+        }
+        .product-card.agotado { opacity: 0.6; }
+    </style>
 </head>
 <body class="bg-texture">
 
 <header class="topbar">
     <img th:src="@{/imagenes/logo_candy_house.png}" class="logo-small" alt="Logo">
-    <div style="display:flex; gap:10px">
+    <div style="display:flex; gap:10px; align-items:center;">
         <a href="/panel_usuario" class="btn-pink">Panel</a>
-        <a href="/carrito" class="btn-green">Carrito</a>
+        <a href="/carrito" class="btn-pink carrito-badge">
+            🛒 Carrito
+            <span class="badge-count"
+                  th:if="${itemsEnCarrito != null and itemsEnCarrito > 0}"
+                  th:text="${itemsEnCarrito}"></span>
+        </a>
         <a href="/logout" class="btn-pink">Salir</a>
     </div>
 </header>
 
-<section class="view-section">
-    <h1>🛍️ Productos</h1>
+<div th:if="${param.agregado != null}" class="toast-agregado">
+    ✅ «<span th:text="${param.agregado}"></span>» añadido al carrito
+</div>
+<div th:if="${param.errorStock != null}" class="toast-agregado toast-error">
+    ⚠️ Stock insuficiente para «<span th:text="${param.errorStock}"></span>»
+</div>
 
-    <!-- Error de stock -->
-    <div th:if="${param.errorStock != null}"
-         style="background:#fdecea; color:#c0392b; padding:12px 18px;
-                border-radius:12px; margin-bottom:16px; font-size:14px;
-                border:1px solid #f5c6c6; max-width:600px;">
-        ⚠ No puedes agregar más unidades de "<span th:text="${param.errorStock}"></span>",
-        has alcanzado el stock disponible.
+<section class="view-section">
+    <h1>🛍️ Productos disponibles</h1>
+
+    <div class="productos-toolbar">
+        <form method="get" action="/ver_productos_usuario"
+              style="display:flex; gap:8px; align-items:center;">
+            <input type="text" name="buscar" th:value="${buscar}"
+                   placeholder="Buscar por nombre o categoría..."
+                   style="padding:8px 16px; border-radius:50px; border:2px solid #f3c2cc;
+                          font-size:13px; font-family:'Poppins',sans-serif; outline:none;
+                          width:280px; color:#5a3a33;">
+            <button type="submit" class="btn-pink" style="padding:8px 18px; font-size:13px;">🔍 Buscar</button>
+            <a th:if="${buscar != null and !buscar.isEmpty()}"
+               href="/ver_productos_usuario" class="btn-yellow"
+               style="padding:8px 18px; font-size:13px;">✕ Limpiar</a>
+        </form>
     </div>
 
-    <!-- Buscador -->
-    <form method="get" action="/ver_productos_usuario"
-          style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
-        <input type="text" name="buscar" th:value="${buscar}"
-               placeholder="Buscar por nombre o categoría..."
-               style="padding:8px 16px; border-radius:50px; border:2px solid #f3c2cc;
-                      font-size:13px; font-family:'Poppins',sans-serif; outline:none;
-                      width:280px; color:#5a3a33;">
-        <button type="submit" class="btn-pink" style="padding:8px 18px; font-size:13px;">Buscar</button>
-        <a th:if="${buscar != null and !buscar.isEmpty()}"
-           href="/ver_productos_usuario" class="btn-yellow"
-           style="padding:8px 18px; font-size:13px;">Limpiar</a>
-    </form>
-
-    <!-- Sin resultados -->
     <p th:if="${buscar != null and !buscar.isEmpty() and #lists.isEmpty(productos)}"
-       style="color:#c4808f; font-size:14px; margin-top:4px; font-style:italic;">
+       style="color:#c4808f; font-size:14px; margin-top:8px; font-style:italic;">
         No se encontraron productos para "<strong th:text="${buscar}"></strong>".
     </p>
 
     <div class="grid">
-        <div class="product-card" th:each="p : ${productos}">
+        <div th:each="p : ${productos}"
+             th:class="${p.existenciaProd == 0} ? 'product-card agotado' : 'product-card'">
 
             <img th:if="${p.imagenUrl != null and !#strings.isEmpty(p.imagenUrl)}"
                  th:src="${p.imagenUrl}" alt="Imagen del producto"
-                 style="width:100%; height:180px; object-fit:cover; border-radius:10px; margin-bottom:10px;">
-
+                 style="width:100%; height:150px; object-fit:cover; border-radius:10px; margin-bottom:8px;">
             <img th:if="${p.imagenUrl == null or #strings.isEmpty(p.imagenUrl)}"
                  th:src="@{/imagenes/no-image.png}" alt="Sin imagen"
-                 style="width:100%; height:180px; object-fit:cover; border-radius:10px; margin-bottom:10px;">
+                 style="width:100%; height:150px; object-fit:cover; border-radius:10px; margin-bottom:8px;">
 
             <h3 th:text="${p.nombrePro}"></h3>
-            <p>Categoría: <span th:text="${p.categoria}"></span></p>
-            <p>Precio: $<span th:text="${p.precio}"></span></p>
-            <p>Stock:
+            <p th:text="${p.categoria}"></p>
+            <p style="font-weight:700; color:#e35d7a; font-size:14px;">
+                $<span th:text="${#numbers.formatInteger(p.precio, 0, 'COMMA')}"></span>
+            </p>
+            <p>
                 <span th:if="${p.existenciaProd == 0}" class="badge-agotado">✕ Agotado</span>
-                <span th:if="${p.existenciaProd > 0 and p.existenciaProd <= 10}" class="badge-stock-bajo">⚠ [[${p.existenciaProd}]]</span>
-                <span th:if="${p.existenciaProd > 10}" th:text="${p.existenciaProd}"></span>
+                <span th:if="${p.existenciaProd > 0 and p.existenciaProd <= 5}"
+                      class="badge-stock-bajo">⚠ [[${p.existenciaProd}]]</span>
+                <span th:if="${p.existenciaProd > 5}"
+                      style="color:#2d9e65; font-size:12px; font-weight:600;"
+                      th:text="${p.existenciaProd} + ' disp.'"></span>
             </p>
 
-            <details>
-                <summary>Descripción</summary>
-                <span th:text="${p.descripcion}"></span>
-            </details>
-
-            <form th:action="@{/carrito/agregar}" method="post" th:if="${p.existenciaProd > 0}">
+            <form th:if="${p.existenciaProd > 0}"
+                  method="post" action="/carrito/agregar">
                 <input type="hidden" name="productoCod" th:value="${p.productoCod}">
-                <label>Cantidad:</label>
+                <input type="hidden" name="page"   th:value="${paginaActual}">
+                <input type="hidden" name="buscar" th:value="${buscar}">
+                <label>Cantidad</label>
                 <input type="number" name="cantidad" value="1" min="1"
-                       th:max="${p.existenciaProd}" required>
-                <button type="submit" class="btn-green">Agregar al carrito</button>
+                       th:max="${p.existenciaProd}">
+                <button type="submit" class="btn-green">+ Carrito</button>
             </form>
-
             <p th:if="${p.existenciaProd == 0}"
-               style="color:#c0392b; font-size:13px; margin-top:10px;">
-                Producto no disponible
-            </p>
+               style="color:#ccc; font-size:12px; margin-top:8px;">No disponible</p>
+
         </div>
     </div>
 
-    <!-- Paginación -->
-    <div th:replace="~{paginacion :: controles(paginaActual=${paginaActual}, totalPaginas=${totalPaginas}, url='/ver_productos_usuario?buscar=' + ${buscar})}"></div>
+    <div th:replace="~{paginacion :: controles(paginaActual=${paginaActual}, totalPaginas=${totalPaginas}, url='/ver_productos_usuario')}"></div>
 
 </section>
 
 <footer>© 2026 Delicias Candy House</footer>
+
+<script>
+    setTimeout(() => {
+        document.querySelectorAll('.toast-agregado').forEach(t => t.remove());
+    }, 3500);
+</script>
 </body>
 </html>
